@@ -16,6 +16,11 @@ to use than typical gui packages.
 Using HTML with css means that there is immense flexibility to format and animate the user interface, and also means the many smart tools existing
 for web browsers can be exploited.
 
+The web server and associated classes is about 250 lines of python.
+
+There is also a small javascript file that is used by the web page to link the fields on the web page back to the app via the web server. This is about
+50 lines of code
+
 ## Dependencies
 Python 3.7 or later is needed. No other packages are required.
 
@@ -26,6 +31,7 @@ Python 3.7 or later is needed. No other packages are required.
 1. type `python3 hello_calc.py`
 2. Note the url printed as the app starts
 3. plug the url into a web browser on this or another machine
+
 ## The sample app
 The app is a trivial, state based, calculator. 
 
@@ -37,4 +43,7 @@ The web front end enables all 3 of the properties to be changed, and a 4th field
 
 The result automatically updates when any of the 3 properties is changed.
 
-The web page also displays a timer based html progress bar, In this case the @property decorator is used to generate a value for the progress bar.
+The web page also displays a timer based html progress bar, this is implemented in the class that extends the app to web enable it.
+The class uses a  @property decorator is used to generate a value for the progress bar.
+
+
