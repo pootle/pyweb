@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <script src="static/pymon.js"></script>
+        <script type="text/javascript">
+            window.onload=startup
+
+            function startup() {{
+                liveupdates("index");
+            }}
+        </script>
+        <link rel="stylesheet" href="static/base.css">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+    </head>
+    <body>
+        <h3>A very simple calculator</h3>
+        <form autocomplete="off">
+        <div class="rowsncols">
+            <div class="row">
+                <label class="rowlabel" for="number_A-f" >number A:</label>
+                <input class="cell" value="{app.number_A}" onchange="field_changed(this)" id="number_A-f" autocomplete="off" style="width: 7em;" />
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <label class="rowlabel" for="number_B-f" >number B:</label>
+                <input class="cell" value="{app.number_B}" onchange="field_changed(this)" id="number_B-f" autocomplete="off" style="width: 7em;" />
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <label class="rowlabel" for="operation-s" >operator:</label>
+                <select id="operation-s" onchange="field_changed(this)">{app.op_select}</select>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <label class="rowlabel" for="answer" >answer:</label><div class="cell" id="answer">0.0</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <label class="rowlabel" for="target_ops" >timer (seconds):</label>
+                <div class="cell" id="target_ops" >{app.target_ops:d}</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <label class="rowlabel" for="prog_bar" >nearly done?</label>
+                <progress id="prog_bar" value="{app.current_ops:d}" max="{app.target_ops:d}" />
+            </div>
+        </div>
+        </form>
+    </body>
+</html>
