@@ -27,10 +27,11 @@ Python 3.7 or later is needed. No other packages are required.
 ## Run the sample app
 1. Use git clone or download and unzip a zip of this repository.
 1. in a command / shell window:
-1. cd into the directory
-1. type `python3 hello_calc.py`
-2. Note the url printed as the app starts
-3. plug the url into a web browser on this or another machine
+1. cd into the folder
+2. cd into examples
+3. type `python3 hello_calc_web.py`
+4. Note the url printed as the app starts (on windows the url isn't shown - use http://<ip address?:8000)
+5. plug the url into a web browser on this or another machine
 
 ## The sample app
 The app is a trivial, state based, calculator. 
