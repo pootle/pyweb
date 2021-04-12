@@ -1,0 +1,65 @@
+<html>
+    <head>
+        <script src="static/pymon.js"></script>
+        <script type="text/javascript">
+            window.onload=startup
+
+            function startup() {{
+                liveupdates("index");
+            }}
+        </script>
+        <link rel="stylesheet" href="static/base.css">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+    </head>
+    <body>
+        <h3>Unipolar Stepper Motor test with ULN2003</h3>
+        <form autocomplete="off">
+        <div class="rowsncols">
+            <div class="row">
+                <div class="rowlabel">step style:</div><select id="set_motor_mode-s" onchange="field_changed(this)">{app.dmselect}</select>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">driver mode:</div><div class="cell" id="drive_mode">{app.drive_mode:s}</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">state:</div><div class="cell" id="drive_state">{app.drive_state:s}</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">current pos:</div><div class="cell" id="current_pos">{app.current_pos:05.1f}</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+            <div class="row">
+                <div class="rowlabel">current tps:</div><div class="cell" id="current_tps">{app.current_tps:9.2f}</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">target pos:</div>
+                <input class="cell" type="text" step="any" value="0" onchange="field_changed(this)" id="target_pos-f" autocomplete="off" style="width: 7em;" />
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">steps per degree:</div><div class="cell">{app.unit_scale:7.3f}</div>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">max tps:</div>
+                <input class="cell" type="text" step="any" value="{app.max_tps:7.2f}" onchange="field_changed(this)" id="max_tps-f" autocomplete="off" style="width: 7em;"/>
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">accel - decel tps/s:</div>
+                <input class="cell" type="text" step="any" value="{app.acceleration:7.2f}" onchange="field_changed(this)" id="acceleration-f" autocomplete="off" style="width: 7em;" />
+            </div>
+            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="row">
+                <div class="rowlabel">drive pins:</div><div class="cell">{app.pins}</div>
+            </div>
+        </div>
+        </form>
+    </body>
+</html>

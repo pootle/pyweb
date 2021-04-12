@@ -1,0 +1,43 @@
+body {
+    background-color: lightgray;
+}
+
+input[type=text] {
+  border: 3px solid #ccc;
+  -webkit-transition: 0.5s;
+  transition: 0.5s;
+  outline: none;
+}
+
+input[type=text]:focus {
+  border: 3px solid #555;
+}
+
+.rowsncols {
+  display: grid;
+  grid-template-columns: 
+    minmax(130px, 170px)
+    minmax(150px, 0.27fr);
+    align-items: center;
+}
+
+.row {
+  display: contents;
+  
+}
+
+.rowsep {
+    height:1px;
+    background-color: gray;
+}
+
+.rowlabel {
+    text-align: right;
+    font-size: 105%;
+    font-weight: bold;
+    margin-right: 7px;
+}
+
+.cell {
+    font-size: 120%;
+}
