@@ -2,7 +2,7 @@ function field_changed(ele) {
     notify(ele, "notify?t="+ele.id+"&v="+ele.value);
 }
 
-function appClickNotify(ele, pageid) {
+function appClickNotify(ele) {
     notify(ele, "notify?t="+ele.id+"&v=0");
 }
 
@@ -15,12 +15,16 @@ async function notify(ele, fs) {
             console.log('response:' + resp);
             let msg = JSON.parse(resp);
             if (msg.OK) {
-                if (ele.nodeName=='SELECT') {
-                    // skip update for now
-                } else if (ele.nodeName=='INPUT') {
-                    ele.value=msg.value;
-                } else {
-                    ele.innerText=msg.value;
+                if ('value' in msg) {
+                    if (ele.nodeName=='SELECT') {
+                        // skip update for now
+                    } else if (ele.nodeName=='INPUT') {
+                        ele.value=msg.value;
+                    } else {
+                        ele.innerText=msg.value;
+                    }
+                } else if ('updates' in msg) {
+                     do_updates(msg.updates);
                 }
             } else {
                 alert(msg.fail);
@@ -32,6 +36,24 @@ async function notify(ele, fs) {
         alert("HTTP-Error: " + response.statusText);
     }
     ele.disabled=false;
+}
+
+function do_updates(newinfo) {
+    if (newinfo=='kwac') {
+        console.log('update nothing')
+    } else {
+        newinfo.forEach(function(update, idx) {
+            console.log(update[0] + ' is ' + update[1]);
+            var tempel=document.getElementById(update[0]);
+            if (tempel) {
+                if (tempel.nodeName=='INPUT' || tempel.nodeName=='PROGRESS') {
+                    tempel.value=update[1];
+                } else {
+                    tempel.innerHTML=update[1];
+                }
+            }
+        });
+    }
 }
 
 function flipme(etag, img) {
@@ -50,21 +72,7 @@ function liveupdates(pageid, livekey) {
     var esource = new EventSource("appupdates?pageid="+pageid);
     esource.addEventListener("message", function(e) {
             var newinfo=JSON.parse(e.data);
-            if (newinfo=='kwac') {
-                console.log('update nothing')
-            } else {
-                newinfo.forEach(function(update, idx) {
-                    console.log(update[0] + ' is ' + update[1]);
-                    var tempel=document.getElementById(update[0]);
-                    if (tempel) {
-                        if (tempel.nodeName=='INPUT' || tempel.nodeName=='PROGRESS') {
-                            tempel.value=update[1];
-                        } else {
-                            tempel.innerHTML=update[1];
-                        }
-                    }
-                });
-            }
+            do_updates(newinfo);
         }, false);
     esource.addEventListener("open", function(e) {
             console.log('update connection opened');

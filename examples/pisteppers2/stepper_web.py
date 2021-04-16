@@ -8,7 +8,7 @@ import time, pigpio, threading
 from unidsettings import stepping_params, drivepins
 
 class webstepper(sud.Unipolar_direct, simpleweb.webify):
-    def get_pages(self):
+    def get_server_def(self):
         """
         This method is called by the web server as it starts. It returns the list of pages the app will
         respond to and details how to handle each of them
@@ -18,6 +18,7 @@ class webstepper(sud.Unipolar_direct, simpleweb.webify):
                 ''              : ('redirect', '/index.html'),
                 'index.html'    : ('app_page', {'template': 'index.html'}),
             },
+            'static': '../static',
         }
 
     def get_updates(self, pageid):

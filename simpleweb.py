@@ -16,7 +16,7 @@ class simplehandler(server.BaseHTTPRequestHandler):
                 id=queryparams['t'][0]
             except:
                 self.send_error(500, 'missing parameter in query request')
-                print('notify rejected - missing / bad params', queryparams)
+                print('notify rejected - missing / bad params', queryparams, file=sys.stderr)
                 return
             try:
                 resp, msg = self.server.app.webupdate(id, queryparams.get('v', []))
@@ -32,7 +32,7 @@ class simplehandler(server.BaseHTTPRequestHandler):
             except ValueError as ve:
                 self.send_error(403, str(ve))
             except:
-                print('Exception handling notify: %s' % queryparams)
+                print('Exception handling notify: %s' % queryparams, file=sys.stderr)
                 traceback.print_exc()
                 self.send_error(500,'query crashed!')
         elif parsedpath.path == '/appupdates':  # web page requesting ongoing update stream
@@ -40,8 +40,42 @@ class simplehandler(server.BaseHTTPRequestHandler):
             if 'pageid' in queryparams:
                 self.serveupdates(queryparams['pageid'][0])
             else:
-                print('bad request - appupdates request with no pageid')
+                print('bad request - appupdates request with no pageid' , file=sys.stderr)
                 self.send_error(501)
+
+        elif parsedpath.path=='/camstream':
+            print('start camera stream', file=sys.stderr)
+            camstream = self.server.app.get_cam_stream()
+            self.send_response(200)
+            self.send_header('Age', 0)
+            self.send_header('Cache-Control', 'no-cache, private')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
+            self.end_headers()
+            running=True
+            try:
+                while running and not camstream is None and self.server.serverrunning:
+                    try:
+                        frame, conttype, datalen=camstream.nextframe()
+                    except StopIteration:
+                        running=False
+                    if running:
+                        try:
+                            self.wfile.write(b'--FRAME\r\n')
+                            self.send_header('Content-Type', conttype)
+                            self.send_header('Content-Length', datalen)
+                            self.end_headers()
+                            self.wfile.write(frame)
+                            self.wfile.write(b'\r\n')
+                        except BrokenPipeError:
+                            running=False
+                print('camstream client %sterminated' %   str(self.client_address), file=sys.stderr)
+            except ConnectionError as ce:
+                print('camstream client connection lost %s' %  str(self.client_address), file=sys.stderr)
+            except Exception as e:
+                print('camstream client %s crashed' %   (str(self.client_address)), file=sys.stderr)
+            print('camstream handler thread exits', file=sys.stderr)
+
         else:                                   # some sort of general page request
             pathrequ=parsedpath.path[1:]      # ditch the leading slash
             get_defs = self.server.serverdef['GET'] # fetch the dict of known requests
@@ -113,7 +147,7 @@ class simplehandler(server.BaseHTTPRequestHandler):
             except BrokenPipeError as e:
                 running = False
                 if e.errno==errno.EPIPE:
-                    print('genstream client %s terminated' % str(self.client_address))
+                    print('genstream client %s terminated' % str(self.client_address), file=sys.stderr)
                 else:
                     traceback.print_exc()
                     self.send_error(500,' eeeek - see log')
@@ -123,7 +157,7 @@ class simplehandler(server.BaseHTTPRequestHandler):
                 self.send_error(500,' eeeek - see log')
 
     def servestatic(self, statfile):
-        staticfile=pathlib.Path('static')/statfile
+        staticfile=pathlib.Path(self.server.serverdef['static'])/statfile
         if staticfile.is_file():
             try:
                 sfx=mimetypeforfile(staticfile.suffix)
@@ -149,13 +183,13 @@ class MultiServer(server.ThreadingHTTPServer):
     def __init__(self,  app, port, requhandler = simplehandler, **kwargs):
         self.app = app
         self.serverrunning = True
-        self.serverdef=app.get_pages()
+        self.serverdef=app.get_server_def()
         self.check_config(self.serverdef)
         self.activeupdates = {}
         super().__init__(('', port), requhandler, **kwargs)
 
     def tidyclose(self):
-        print('I am shutting down')
+        print('I am shutting down', file=sys.stderr)
         #self.app.Save()
         self.serverrunning = False
         self.shutdown()
@@ -182,7 +216,7 @@ class MultiServer(server.ThreadingHTTPServer):
                         else:
                             badmsg = '"template" not defined for entry "%s"' % gk
                     else:
-                        print('GET entry for "%s" has unknown action %s. Not checked' % (gk, action))
+                        print('GET entry for "%s" has unknown action %s. Not checked' % (gk, action), file=sys.stderr)
                 if badmsg:
                     print(badmsg, file=sys.stderr)
                     checkOK=False
@@ -226,29 +260,36 @@ class webify():
         split_id = fieldid.split('-')
                         # split off the type of the string, and check we got 1
         if len(split_id) > 1:
-            try:
-                ftype=split_id[-1]
-                        # this defines how to handle the string
-                if ftype=='f':      # its a float
-                    val = float(value[0])
-                elif ftype=='i':    # its an int
-                    val = int(value[0])
-                elif ftype=='s':    # its a string
-                    val=value[0]
-                else:
-                    return 301, "I don't understand this request's format (%s)" % ftype
-            except:                 # any exception here means we couldn't convert the string to the expected type
-                return 400, 'invalid value'
-            fieldkey = split_id[0]  # now get the field name
-            if hasattr(self, fieldkey):
-                try:                # wrap setting the attribute so if ot blows up we can report the error
-                    setattr(self, fieldkey, val)
-                    return 204, None
-                except Exception as e:
-                    return 500, str(e)
+            ftype=split_id[-1]      # this defines how to handle the string
+            fieldkey = split_id[0]  # and get the field name
+            if ftype == 'x':        # call a function
+                if hasattr(self, fieldkey):
+                    try:
+                        return 200, getattr(self, fieldkey)(value)
+                    except Exception as e:
+                        print('OOPS', e, file=sys.stderr)
+                        return 500, 'it went all wrong'
             else:
-                        # the field name had no matching attribute so send back an error
-                return 400, 'unknown field (%s) in update request' % fieldkey
+                try:
+                    if ftype=='f':      # its a float
+                        val = float(value[0])
+                    elif ftype=='i':    # its an int
+                        val = int(value[0])
+                    elif ftype=='s':    # its a string
+                        val=value[0]
+                    else:
+                        return 301, "I don't understand this request's format (%s)" % ftype
+                except:                 # any exception here means we couldn't convert the string to the expected type
+                    return 400, "invalid value - I don't understand >%s< as a %s" % (value[0], {'f': 'float', 'i': 'integer'}[ftype])
+                if hasattr(self, fieldkey):
+                    try:                # wrap setting the attribute so if ot blows up we can report the error
+                        setattr(self, fieldkey, val)
+                        return 204, None
+                    except Exception as e:
+                        return 500, str(e)
+                else:
+                            # the field name had no matching attribute so send back an error
+                    return 400, 'unknown field (%s) in update request' % fieldkey
         return 400, 'passed fieldid not understood (%s)' % fieldid
 
 

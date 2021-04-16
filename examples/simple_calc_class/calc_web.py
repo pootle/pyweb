@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
 import threading, time, sys
-sys.path.append('..')
-import simpleweb, netinf, hello_calc
+sys.path.append('../..')
+import simpleweb, netinf, calc_class
 
-class webbaby(hello_calc.mymaths, simpleweb.webify):
+class webbaby(calc_class.mymaths, simpleweb.webify):
     """
     This class extends the original app with some basic web helping methods (from wimpleweb.webify)
     and provides the method 'get_updates' which is called by the webserver whenever a page is requested
@@ -25,7 +25,7 @@ class webbaby(hello_calc.mymaths, simpleweb.webify):
         self.started=time.time()
         super().__init__()
 
-    def get_pages(self):
+    def get_server_def(self):
         """
         This method is called by the web server as it starts. It returns the list of pages the app will
         respond to and details how to handle each of them
@@ -35,6 +35,7 @@ class webbaby(hello_calc.mymaths, simpleweb.webify):
                 ''              : ('redirect', '/index.html'),
                 'index.html'    : ('app_page', {'template': 'index.html'}),
             },
+            'static': '../static',
         }
 
     def get_updates(self, pageid):
@@ -45,22 +46,24 @@ class webbaby(hello_calc.mymaths, simpleweb.webify):
         have actually changed value since the last update are sent to the web browser).
         """
         if pageid == 'index':
-            try:
-                result=self.answer()
-                if result.is_integer():
-                    resultstr=str(int(result))
-                else:
-                    resultstr='%5.1f' % result
-            except ZeroDivisionError:
-                resultstr = 'Division by zero!'
-            except:
-                resultstr='calculator meltdown'
             return [
-                ('answer', resultstr),
                 ('prog_bar', str(self.current_ops) ),
                 ]
         else:
             return {}
+
+    def calc_now(self, value):
+        try:
+            result=self.answer()
+            if result.is_integer():
+                resultstr=str(int(result))
+            else:
+                resultstr='%5.1f' % result
+        except ZeroDivisionError:
+            resultstr = 'Division by zero!'
+        except:
+            resultstr='calculator meltdown'
+        return {'OK': True, 'updates': [('answer', resultstr),]}
 
     @property
     def op_select(self):

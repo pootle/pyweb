@@ -1,5 +1,3 @@
-import simpleweb
-
 class mymaths():
     def __init__(self):
         self.number_A = 0.0
@@ -20,3 +18,4 @@ class mymaths():
             return self.number_A / self.number_B
         else:
             return float('nan')
+ 
