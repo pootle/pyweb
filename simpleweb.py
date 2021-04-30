@@ -1,6 +1,6 @@
 from http import server
 from urllib.parse import urlparse, parse_qs
-import pathlib, threading, time, sys, json, traceback, subprocess, errno
+import pathlib, threading, time, sys, json, traceback, subprocess, errno, inspect
 
 class simplehandler(server.BaseHTTPRequestHandler):
     """
@@ -77,7 +77,7 @@ class simplehandler(server.BaseHTTPRequestHandler):
             print('camstream handler thread exits', file=sys.stderr)
 
         else:                                   # some sort of general page request
-            pathrequ=parsedpath.path[1:]      # ditch the leading slash
+            pathrequ=parsedpath.path[1:]        # ditch the leading slash
             get_defs = self.server.serverdef['GET'] # fetch the dict of known requests
             if pathrequ in get_defs:
                 action, params = get_defs[pathrequ]
@@ -105,6 +105,54 @@ class simplehandler(server.BaseHTTPRequestHandler):
             else:
                 print('no action defined for path %s' % pathrequ, file=sys.stderr)
                 self.send_error(404)
+
+    def do_REQUEST(self):
+        requests = self.server.serverdef['REQUEST']
+        parsedpath=urlparse(self.path)
+        rq = parsedpath.path[1:]
+        if rq in requests:
+            print('   ',self.headers)
+            if 'Content-Length' in self.headers:
+                request_params=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                print('>%s<' % request_params)
+                try:
+                    response=requests[rq](**request_params)
+                    if response is True:
+                        resp=200
+                        resp_data=((request_params['id'], {'disabled':False}),)
+                    else:
+                        resp=200
+                        resp_data=response
+                except TypeError:
+                    self.send_error(502,"There's a problem with that Dave.")
+                    rqf=requests[rq]
+                    if callable(rqf):
+                        print('signature of %s (%s) does not match request params (%s) for request %s' % (rqf.__name__, inspect.signature(rqf), request_params, rq))
+                        self.send_error(501,'action call mismatch')
+                    else:
+                        print('The action specified for request %s is not callable (%s of type %s)' % (rq, rqf, type(rqf).__name__))
+                        self.send_error(501,'action call fail')
+                except:
+                    self.send_error(501,'no parameters received')
+                    traceback.print_exc()
+                else:
+                    self.send_response(resp)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Cache-Control', 'no-store')
+                    self.end_headers()
+                    print('sending ', resp_data)
+                    self.wfile.write(json.dumps(resp_data).encode())
+            else:
+                print('xxxx')
+                help(self.rfile)
+                r_data = self.rfile.read()
+                print('yyyy')
+                print('>%s<' % r_data)
+                request_params=json.load(self.rfile)
+                print('ppp      ',request_params)
+                self.send_error(401,'mmmmm')
+        else:
+            self.send_error(404,"I'm sorry Dave, I don't know how to do that (%s)" % rq)
 
     def serveupdates(self, pageid):
         """
@@ -135,6 +183,7 @@ class simplehandler(server.BaseHTTPRequestHandler):
                     if not anupdate[0] in currently or currently[anupdate[0]] != anupdate[1]:
                         currently[anupdate[0]] = anupdate[1]
                         updates.append(anupdate)
+                print(updates)
                 datats=json.dumps(updates)
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
@@ -238,7 +287,95 @@ def mimetypeforfile(fileext):
 class webify():
     """
     class that adds web update method to use with existing class or as base for a simple app.
+    
+    This class provides the webupdate method that is called from the server code when the user changes the 
+    value of a field that immediately updates a corresponding attribute in the app's class (or calls a function).
+
+    Inheriting classes should also implement the methods get_server_def and get_updates (see below).
     """
+    def __init__(self):
+        self.logfile=sys.stderr
+
+    def get_server_def(self):
+        """
+        when the webserver starts and is passed the "app", it calls this method to retrieve information about the service:
+        
+        return a dict as follows:
+            'GET'    : <pagedefs>,
+            'static' : <location for folder with static files>
+        
+        """
+        raise NotImplementedError()
+
+    def web_field_update(self, id, ftype, val):
+        """
+        normal method to update the value of a class' attribute. One of the standard 'REQUEST's 
+        
+        id:     field's id - is used as the attribute name. like in string format, '.' used as a separator to
+                navigate class hierarchy
+        
+        type:   identifies how the string from the web browser should be parsed, can be:
+            bool
+            int
+            float
+            str
+        
+        val:    the string for the new value - will be converted as defined by type param
+        """
+        splitid=id.split('.')
+        targetob = self
+        while len(splitid) > 1:
+            nextatt=splitid.pop(0)
+            try:
+                targetob=getattr(targetob,nextatt)
+            except:
+                print('web_field_update failed to find attribute >%s< in object %s for id %s' % (nextatt, targetob, id))
+                return ((id, {'disabled':False}),
+                        ('alert', "I'm sorry Dave, I can't find that attribute"),)
+        targetatt=splitid[0]
+        if not hasattr(targetob, targetatt):
+            print('web_field_update failed - attribute %s not found in %s' % (targetatt, targetob))
+            return ((id, {'disabled':False}),
+                    ('alert', "I'm sorry Dave, I couldn't find the field"),)
+        try:
+            if ftype=='float':      # its a float
+                newval = float(val)
+            elif ftype=='int':      # its an int
+                newval = int(val)
+            elif ftype=='str':      # its a string
+                newval=val
+            elif ftype=='bool':     # boolean
+                newval = val=='true'
+            elif ftype=='sel':      # from a select field
+                field_info = getattr(targetob, targetatt+'_LIST', None)
+                if not field_info is None:
+                    val_index = field_info['display'].index(val)
+                    if 'values' in field_info:
+                        newval = field_info['values'][val_index]
+                    else:
+                        newval = val
+                else:
+                    print('failed to find select list %s in %s' % (targetatt+'_LIST', targetob))
+                    return ((id, {'disabled':False}),
+                        ('alert', "I'm sorry Dave, there's a missing list"%ftype),)
+            else:
+                print('web_field_update failed - field type %s unknown for field %s' % (ftype, id))
+                return ((id, {'disabled':False}),
+                        ('alert', "I'm sorry Dave, I don't understand %s as a field type"%ftype),)
+        except:                 # any exception here means we couldn't convert the string to the expected type
+            print('web_field_update failed - failed to handle %s of type %s for field %s' % (val, ftype, id))
+            return ((id, {'disabled':False}),
+                        ('alert', "I'm sorry Dave, I couldn't make sense of the value %s" % val),)
+        try:
+            setattr(targetob, targetatt, newval)
+            print(' I set %s in %s to %s' % (targetatt, targetob, newval))
+        except:
+            traceback.print_exc()
+            return ((id, {'disabled':False}),
+                        ('alert', "I'm sorry Dave, something went wrong with that update - see server log"),)
+        return True
+
+
     def webupdate(self, fieldid, value):
         """
         Called when the user updates a field value on a web page.
@@ -267,7 +404,8 @@ class webify():
                     try:
                         return 200, getattr(self, fieldkey)(value)
                     except Exception as e:
-                        print('OOPS', e, file=sys.stderr)
+                        print('function call to %s from webupdate in class webify in module simpleweb failed' % fieldkey, e, file=sys.stderr)
+                        traceback.print_exc(file=sys.stderr)
                         return 500, 'it went all wrong'
             else:
                 try:
@@ -277,6 +415,13 @@ class webify():
                         val = int(value[0])
                     elif ftype=='s':    # its a string
                         val=value[0]
+                    elif ftype=='b':    # boolean
+                        print('check', value[0])
+                        val = value[0]=='true'
+                    elif ftype=='o':    # from a select field
+                        field_info = getattr(self, fieldkey+'_LIST')
+                        val_index = field_info['display'].index(value[0])
+                        val=field_info['values'][val_index]
                     else:
                         return 301, "I don't understand this request's format (%s)" % ftype
                 except:                 # any exception here means we couldn't convert the string to the expected type
@@ -292,10 +437,15 @@ class webify():
                     return 400, 'unknown field (%s) in update request' % fieldkey
         return 400, 'passed fieldid not understood (%s)' % fieldid
 
+    def web_request(self, call_params):
+        """web page request from pymon.js call_server"""
+        pass
 
 def make_subselect(choices, selected, display=None):
-    if not display is None:
-        assert len(display)==len(choices)
-        return ''.join(['<option name="{}"{}>{}</option>'.format(name, ' selected ' if name == selected else '', disp)  for name, disp in zip(choices, display)])
-    else:
+    if display is None:
         return ''.join(['<option{sel}>{val}</option>'.format(sel=' selected ' if item == selected else '', val=item)  for item in choices])
+    else:
+        assert len(display)==len(choices)
+        zzz= ''.join(['<option name="{}"{}>{}</option>'.format(name, ' selected ' if name == selected else '', disp)  for name, disp in zip(choices, display)])
+        print(zzz)
+        return zzz

@@ -17,31 +17,32 @@
         <form autocomplete="off">
         <div class="rowsncols">
             <div class="row">
-                <label class="rowlabel" for="number_A-f" >number A:</label>
-                <input class="cell" value="{app.number_A}" onchange="field_changed(this)" id="number_A-f" autocomplete="off" style="width: 7em;" />
+                <label class="rowlabel" for="number_A" style="grid-column: 1;" >number A:</label>
+                <input class="cell" value="{app.number_A}" onchange="field_update(this, 'float')" id="number_A" autocomplete="off" style="width: 7em;" />
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <label class="rowlabel" for="number_B-f" >number B:</label>
-                <input class="cell" value="{app.number_B}" onchange="field_changed(this)" id="number_B-f" autocomplete="off" style="width: 7em;" />
+                <label class="rowlabel" for="number_B" style="grid-column: 1;" >number B:</label>
+                <input class="cell" value="{app.number_B}" onchange="field_update(this, 'float')" id="number_B" autocomplete="off" style="width: 7em;" />
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <label class="rowlabel" for="operation-s" >operator:</label>
-                <select id="operation-s" onchange="field_changed(this)">{app.op_select}</select>
+                <label class="rowlabel" for="operation" style="grid-column: 1;" >operator:</label>
+                <select id="operation" onchange="field_update(this, 'sel')">{app.op_select}</select>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <label class="rowlabel" for="answer" onclick="appClickNotify(this)" id="calc_now-x">calculate!</label><div class="cell" id="answer">0.0</div>
+                <input type= "button" class="btnlike" onclick="app_action(this, 'do_sum')" id="do_sum" value="calculate!" style="grid-column: 1;"/>
+                <div class="cell" id="answer">0.0</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <label class="rowlabel" for="target_ops" >timer (seconds):</label>
+                <label class="rowlabel" for="target_ops" style="grid-column: 1;" >timer (seconds):</label>
                 <div class="cell" id="target_ops" >{app.target_ops:d}</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <label class="rowlabel" for="prog_bar" >nearly done?</label>
+                <label class="rowlabel" for="prog_bar" style="grid-column: 1;" >nearly done?</label>
                 <progress id="prog_bar" value="{app.current_ops:d}" max="{app.target_ops:d}" />
             </div>
         </div>

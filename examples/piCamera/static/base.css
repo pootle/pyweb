@@ -17,13 +17,18 @@ input[type=text]:focus {
   display: grid;
   grid-template-columns: 
     minmax(130px, 170px)
-    minmax(150px, 0.27fr);
+    minmax(150px, 160px)
+    minmax(50px,50px);
     align-items: center;
 }
 
 .row {
   display: contents;
   
+}
+
+.grouphead {
+    display: contents;
 }
 
 .rowsep {
@@ -36,10 +41,27 @@ input[type=text]:focus {
     font-size: 105%;
     font-weight: bold;
     margin-right: 7px;
+    grid-column: 1;
 }
 
 .cell {
     font-size: 120%;
+}
+
+.headercell {
+    font-size: 150%;
+    grid-column: 1 / span 2;
+}
+
+.group {
+    display: contents;
+}
+
+.group_button {
+    display: inline-block;
+    cursor: pointer;
+    width: 41px;
+    height:41px;
 }
 
 .btnlike{
@@ -58,12 +80,10 @@ input[type=text]:focus {
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
-    user-select: none;
-    background-image: none;
+    background-color:aquamarine;
     border: 1px solid transparent;
     border-radius: 4px;
     text-decoration: none;
     color: #333;
-    background-color: #fff;
-    border-color: #ccc;
+    border-color: #222;
 }

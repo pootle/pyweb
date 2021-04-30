@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <script src="static/pymon.js"></script>
+        <script type="text/javascript">
+            window.onload=startup
+
+            function startup() {{
+                liveupdates("index");
+            }}
+        </script>
+        <link rel="stylesheet" href="static/base.css">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+    </head>
+    <body>
+       <form autocomplete="off">
+       <h3>Tutorial 1</h3>
+        <div class="rowsncols">
+            <div class="row">
+                <label class="rowlabel" for="run_time" >run time:</label>
+                <div class="cell" id="run_time">{app.time_running}</div>
+            </div>
+            <div class="row">
+                <input type="button" onclick="app_action(this, 'clickbtn1')" id="button1" value="go on - click me"  style="grid-column: 1;" />
+                <div class="cell" id="b1_counter">{app.b1_click_count}</div>
+                <div class="cell" id="count2" >fred was here</div>
+            </div>
+        </div>
+        </form>
+    </body>
+</html>

@@ -24,6 +24,7 @@ class webbaby(calc_class.mymaths, simpleweb.webify):
         self.target_ops = 15
         self.started=time.time()
         super().__init__()
+        self.operation_LIST = {'display': self.valid_ops()}
 
     def get_server_def(self):
         """
@@ -35,6 +36,11 @@ class webbaby(calc_class.mymaths, simpleweb.webify):
                 ''              : ('redirect', '/index.html'),
                 'index.html'    : ('app_page', {'template': 'index.html'}),
             },
+            'REQUEST': {    # list the requests we are going to accept and how to handle them
+                'do_sum'        : self.calc_now,
+                'field_update'  : self.web_field_update,
+            },
+
             'static': '../static',
         }
 
@@ -52,7 +58,7 @@ class webbaby(calc_class.mymaths, simpleweb.webify):
         else:
             return {}
 
-    def calc_now(self, value):
+    def calc_now(self, id):
         try:
             result=self.answer()
             if result.is_integer():
@@ -63,7 +69,8 @@ class webbaby(calc_class.mymaths, simpleweb.webify):
             resultstr = 'Division by zero!'
         except:
             resultstr='calculator meltdown'
-        return {'OK': True, 'updates': [('answer', resultstr),]}
+        return (('answer', {'value': resultstr}),
+                ('do_sum', {'disabled': False}),)
 
     @property
     def op_select(self):

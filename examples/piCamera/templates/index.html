@@ -1,0 +1,136 @@
+<html>
+    <head>
+        <script src="static/pymon.js"></script>
+        <script src="static/streambits.js"></script>
+        <script type="text/javascript">
+            window.onload=startup
+
+            function startup() {{
+                liveupdates("index");
+            }}
+        </script>
+        <link rel="stylesheet" href="static/base.css">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+    </head>
+    <body>
+       <form autocomplete="off">
+       <h3>Raspbery Pi Camera</h3>
+       <div class="overpnl">
+           <div>
+               <div>
+                   <span onclick="livestreamflip(this)" title="click to start / stop live view" class="btnlike" style="width:135px;" >show livestream</span>
+               </div>
+           </div>
+           <img id="livestreamimg" src="static/nocam.png"  style="z-index:1;"/>
+       </div>
+       <div id="cam_summary">{app.cam_summary}</div>
+        <div class="rowsncols">
+            <div class="row">
+                <label class="rowlabel" for="camType" >camera rev:</label>
+                <div class="cell" id="camType">{app.camType}</div>
+            </div>
+            <div class = "grouphead">
+                <div class="headercell" >Camera settings</div><img class="group_button" onclick="show_hide('cameragroup', this)" src="static/openuparrow.svg" />
+            </div>
+            <div class="group" id="cameragroup">
+                <div class="row">
+                    <label class="rowlabel" for="cam_resolution-s" >resolution:</label>
+                    <select id="cam_resolution" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_resolution}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_rotation" >rotation:</label>
+                    <select id="cam_rotation" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_rotation}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_hflip" >hflip:</label>
+                    <select id="cam_hflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_hflip}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_vflip" >vflip:</label>
+                    <select id="cam_vflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_vflip}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="" >awb mode:</label>
+                    <select id="cam_awb_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_awb_mode}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_exposure_mode" >exposure mode:</label>
+                    <select id="cam_exposure_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_exposure_mode}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_meter_mode" >meter mode:</label>
+                    <select id="cam_meter_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_meter_mode}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_exposure_compensation" >exposure compensation:</label>
+                    <select id="cam_exposure_compensation" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_exposure_compensation}</select>
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_contrast" >contrast:</label>
+                    <input class="cell" value="{app.cam_contrast}" onchange="field_update(this, 'int')" id="cam_contrast" style="width: 7em;" />
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_brightness" >brightness:</label>
+                    <input class="cell" value="{app.cam_brightness}" onchange="field_update(this, 'int')" id="cam_brightness" style="width: 7em;" />
+                </div>
+                <div class="row">
+                    <label class="rowlabel" for="cam_drc_strength" >dynamic range compression:</label>
+                    <select id="cam_drc_strength" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_drc_strength}</select>
+                </div>
+            </div>
+            <div class = "grouphead">
+                <div class="headercell" >Live stream settings</div><img class="group_button" onclick="show_hide('livestreamgroup', this)" src="static/openuparrow.svg" />
+            </div>
+            <div class="group" id="livestreamgroup">
+                 <div class="row">
+                    <label class="rowlabel" for="streamer.ls_width" >live stream width:</label>
+                    <input class="cell" value="{app.streamer.ls_width}" onchange="field_update(this, 'int')" id="streamer.ls_width" style="width:8pc;" />
+                 </div>
+                 <div class="row">
+                    <label class="rowlabel" for="streamer.ls_height" >live stream height:</label>
+                    <input class="cell" value="{app.streamer.ls_height}" onchange="field_update(this, 'int')" id="streamer.ls_height" style="width:8pc;" />
+                 </div>
+                 <div class="row">
+                    <label class="rowlabel" for="streamer.ls_frame_skip" >skip frames:</label>
+                    <input class="cell" value="{app.streamer.ls_frame_skip}" onchange="field_update(this, 'int')" id="streamer.ls_frame_skip" style="width:8pc;" />
+                 </div>
+                 <div class="row">
+                    <label class="rowlabel" for="streamer.ls_timeout" >stream timeout:</label>
+                    <input class="cell" value="{app.streamer.ls_timeout}" onchange="field_update(this, 'int')" id="streamer.ls_timeout" style="width:8pc;" />
+                 </div>
+            </div>
+            <div class = "grouphead">
+                <div class="headercell" >video record settings</div><img class="group_button" onclick="show_hide('vidrecordgroup', this)" src="static/openuparrow.svg" />
+            </div>
+            <div class="group" id="vidrecordgroup">
+                <div class="row">
+                    <input type="button" onclick="app_action(this, 'record_enable')" id="recorder_btn1" value="enable recorder"  style="grid-column: 1;" />
+                    <div class="cell" id="vr_status">{app.vidrecord.vr_status}</div>
+                </div>
+                <div class="row">
+                    <input type="button" onclick="app_action(this, 'record_now')" id="recorder_btn2" value="record now" style="grid-column: 1;" disabled/>
+                    <div class="cell">??</div>
+                </div>
+                <div class="row">
+                    <div class="rowlabel" for="vidrecord.vr_width" >vid record width:</div>
+                    <input class="cell" value="{app.vidrecord.vr_width}" onchange="field_update(this, 'int')" id="vidrecord.vr_width" style="width:8pc;" />
+                </div>
+                <div class="row">
+                    <div class="rowlabel" for="vidrecord.vr_height" >vid record height:</div>
+                    <input class="cell" value="{app.vidrecord.vr_height}" onchange="field_update(this, 'int')" id="vidrecord.vr_height" style="width:8pc;" />
+                </div>
+                <div class="row">
+                    <div class="rowlabel" for="vidrecord.vr_folder" >base recording folder:</div>
+                    <input class="cell" value="{app.vidrecord.vr_folder}" onchange="field_update(this, 'str')" id="vidrecord.vr_folder" style="width:15pc;" />
+                </div>
+                <div class="row">
+                    <div class="rowlabel" for="vidrecord.vr_filename" >recording filename:</div>
+                    <input class="cell" value="{app.vidrecord.vr_filename}" onchange="field_update(this, 'str')" id="vidrecord.vr_filename" style="width:15pc;" />
+                </div>
+            </div>
+
+        </div>
+        </form>
+    </body>
+</html>
