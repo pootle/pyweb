@@ -36,35 +36,35 @@
             <div class="group" id="cameragroup">
                 <div class="row">
                     <label class="rowlabel" for="cam_resolution-s" >resolution:</label>
-                    <select id="cam_resolution" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_resolution}</select>
+                    <select id="cam_resolution" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_resolutionsel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_rotation" >rotation:</label>
-                    <select id="cam_rotation" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_rotation}</select>
+                    <select id="cam_rotation" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_rotationsel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_hflip" >hflip:</label>
-                    <select id="cam_hflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_hflip}</select>
+                    <select id="cam_hflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_hflipsel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_vflip" >vflip:</label>
-                    <select id="cam_vflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_vflip}</select>
+                    <select id="cam_vflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_vflipsel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="" >awb mode:</label>
-                    <select id="cam_awb_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_awb_mode}</select>
+                    <select id="cam_awb_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_awb_modesel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_exposure_mode" >exposure mode:</label>
-                    <select id="cam_exposure_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_exposure_mode}</select>
+                    <select id="cam_exposure_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_exposure_modesel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_meter_mode" >meter mode:</label>
-                    <select id="cam_meter_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_meter_mode}</select>
+                    <select id="cam_meter_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_meter_modesel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_exposure_compensation" >exposure compensation:</label>
-                    <select id="cam_exposure_compensation" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_exposure_compensation}</select>
+                    <select id="cam_exposure_compensation" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_exposure_compensationsel}</select>
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_contrast" >contrast:</label>
@@ -76,7 +76,7 @@
                 </div>
                 <div class="row">
                     <label class="rowlabel" for="cam_drc_strength" >dynamic range compression:</label>
-                    <select id="cam_drc_strength" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:sel#cam_drc_strength}</select>
+                    <select id="cam_drc_strength" onchange="field_update(this, 'sel')" style="width:8pc;" >{app:cam_drc_strengthsel}</select>
                 </div>
             </div>
             <div class = "grouphead">
@@ -105,12 +105,12 @@
             </div>
             <div class="group" id="vidrecordgroup">
                 <div class="row">
-                    <input type="button" onclick="app_action(this, 'record_enable')" id="recorder_btn1" value="enable recorder"  style="grid-column: 1;" />
+                    <input type="button" onclick="app_action(this, 'record_enable_flip')" id="recorder_btn1" value="enable recorder"  style="grid-column: 1;" />
                     <div class="cell" id="vr_status">{app.vidrecord.vr_status}</div>
                 </div>
                 <div class="row">
                     <input type="button" onclick="app_action(this, 'record_now')" id="recorder_btn2" value="record now" style="grid-column: 1;" disabled/>
-                    <div class="cell">??</div>
+                    <div class="cell" id="vr_activefile">{app.vidrecord.vr_activefile}</div>
                 </div>
                 <div class="row">
                     <div class="rowlabel" for="vidrecord.vr_width" >vid record width:</div>

@@ -1,34 +1,16 @@
 
-function do_updates(newinfo) {
-    if (newinfo=='kwac') {
-        console.log('update nothing')
-    } else {
-        newinfo.forEach(function(update, idx) {
-            console.log(update[0] + ' is ' + update[1]);
-            if (update[0] == '') {
-                console.log('oops');
-                console.log(newinfo);
-            }
-            var tempel=document.getElementById(update[0]);
-            if (tempel) {
-                if (tempel.nodeName=='INPUT' || tempel.nodeName=='PROGRESS' || tempel.nodeName=='SELECT') {
-                    tempel.value=update[1];
-                } else {
-                    tempel.innerHTML=update[1];
-                }
-            }
-        });
-    }
-}
-
 function field_update(ele, ftype) {
     // called (mostly) when user changes a field's value (typically when the field looses focus)
-    call_server(ele, "field_update", {"id": ele.id, "ftype": ftype, "val": ele.value})
+    call_server(ele, "field_update?id="+ele.id+"&t="+ftype+"&v="+ele.value, null);
 }
 
-function app_action(ele, path) {
+function app_action(ele, action) {
     // called (mostly) from button's onclick
-    call_server(ele, path, {"id": ele.id})
+    call_server(ele, 'app_action', {
+        headers: {"content-type":"application/json; charset=UTF-8"},
+        body   : JSON.stringify({"id": ele.id, 'action': action}),
+        method : "REQUEST"
+        });
 }
 
 async function call_server(ele, url, params) {
@@ -38,11 +20,7 @@ async function call_server(ele, url, params) {
         The originating field is disabled, normally the updates in the response will enable it again 
     */
     ele.disabled=true;
-    let response = await fetch(url, {
-        headers: {"content-type":"application/json; charset=UTF-8"},
-        body   : JSON.stringify(params),
-        method : "REQUEST"
-    });
+    let response = await fetch(url, params);
     if (response.ok) { // if HTTP-status is 200-299
         let updates = await response.json();
         console.log(updates)
@@ -92,6 +70,8 @@ function updatefield(fieldid, updates) {
                     tempel.disabled=newvalue;
                 } else if (param=='bgcolor') {
                     tempel.style.backgroundColor=newvalue;    
+                } else {
+                    alert('param ' + param + ' not undertood in field updates for '+ fieldid);
                 }
             }
         }
@@ -111,10 +91,11 @@ function show_hide(etag, img) {
 }
 
 function liveupdates(pageid, livekey) {
-    var esource = new EventSource("appupdates?pageid="+pageid);
+    var esource = new EventSource("appupdates?page="+pageid);
     esource.addEventListener("message", function(e) {
             var newinfo=JSON.parse(e.data);
-            do_updates(newinfo);
+            newinfo.forEach(function(anupdate, idx) {
+                updatefield(anupdate[0], anupdate[1]);});
         }, false);
     esource.addEventListener("open", function(e) {
             console.log('update connection opened');

@@ -4,7 +4,7 @@ streams images to (multiple) clients from the picamera by calling start_recordin
 
 It stops recording when there have beem no active clients for the timeout period
 """
-import time, threading, io, logging
+import time, threading, io, sys
 
 from enum import Flag, auto
 
@@ -58,6 +58,7 @@ class Streamer():
                 self.ls_picam.start_recording(self, format='mjpeg', splitter_port=self.ls_splitter_port, resize=resize)
                 self.monitor_active=True
                 self.ls_monthread.start()
+                self.ls_framecount = 0
             return self
 
     def write(self, buf):
@@ -76,7 +77,7 @@ class Streamer():
             else:
                 self.ls_skip_count -= 1
         else:
-            prints('boops')
+            prints('boops', file=sys.stderr)
         return len(buf)
 
     def nextframe(self):
@@ -88,6 +89,9 @@ class Streamer():
         with self.ls_condition:
             self.ls_condition.wait()
             self.ls_lastactive=time.time()
+        self.ls_framecount += 1
+        if self.ls_framecount % 20==0:
+            print('Framecount: %d' % self.ls_framecount, file=sys.stderr)
         return self.ls_frame, 'image/jpeg', len(self.ls_frame)
 
     def monitor(self):
@@ -100,19 +104,16 @@ class Streamer():
                 self.ls_condition=None
                 break
             except:
-                print('wait recording failed')
+                print('wait recording failed', file=sys.stderr)
                 self.app._releaseSplitterPort(self, self.splitter_port)
                 self.ls_splitter_port=None
                 self.ls_condition=None
                 raise
             if time.time() > self.ls_lastactive + self.ls_timeout or not self.monitor_active:
                 with self.ls_protect:
-                    self.ls_picam.stop_recording(splitter_port=self.ls_.splitter_port)
-                    self.app._releaseSplitterPort(self, self.ls_splitter_port)
+                    self.ls_picam.stop_recording(splitter_port=self.ls_splitter_port)
+                    self.camhand._releaseSplitterPort(self, self.ls_splitter_port)
                     self.ls_splitter_port=None
                     self.ls_condition = None
                 break
-        print('camera stream monitor thread exits')
-
-    def xxclose(self):
-        self.monitor_active = False
+        print('camera stream monitor thread exits', file=sys.stderr)

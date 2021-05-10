@@ -39,12 +39,12 @@ class VideoRecorder():
         self.vr_splitter_port = None
         self.vr_recordcount = 0
         self.vr_lastrecording = 0
+        self.vr_activefile = '-'
         self.vr_protect=threading.Lock()
         self.vr_monthread = None
         self.procthread = None
         self.vr_trig_queue=queue.Queue()
         # and this to support web browser front end
-        self.vr_web_trigger=None
 
     def ready(self, timeout=300):
         """
@@ -55,7 +55,6 @@ class VideoRecorder():
             newtrig = trigger(self.vr_trig_queue, timeout=timeout)
             print('readying')
             if self.vr_splitter_port is None:
-                print('starting monitor')
                 self.vr_splitter_port = self.camhand._getSplitterPort(self)
                 self.vr_status = 'ready'
                 self.vr_monthread = threading.Thread(name='recorder', target=self.monitor, args=[newtrig])
@@ -95,6 +94,7 @@ class VideoRecorder():
         vformat='.h264'
         trigset=set([newtrigger])
         triggers_end=None
+        print('record on demand monitor running')
         while len(trigset) > 0:
             timenow=time.time()
             for trig in trigset:
@@ -133,6 +133,7 @@ class VideoRecorder():
                     self.vr_status='recording'
                     self.vr_recordcount += 1
                     self.vr_lastrecording=timenow
+                    self.vr_activefile = str(postpath)
                     print('cr: triggered and waiting')
                 elif self.vr_status=='ready':   # camera should be active, but no recording in progress
                     # start recording to file
@@ -145,6 +146,7 @@ class VideoRecorder():
                     self.vr_status='recording'
                     self.vr_recordcount += 1
                     self.vr_lastrecording=timenow
+                    self.vr_activefile = str(postpath)
                     print('cr: triggered and ready')
                 else:
                     # already recording to file - carry on
@@ -155,6 +157,7 @@ class VideoRecorder():
                         self.processfiles((True, fpath.with_name(fpath.name+'%03d' % recordingsequ).with_suffix(vformat)))
                         recordingsequ += 1
                         self.vr_lastrecording=timenow
+                        self.vr_activefile = str(postpath)
                         print('cr: triggered split recording')
                     else:
                         print('cr: triggered recording continues')
@@ -184,10 +187,12 @@ class VideoRecorder():
                                 circstream=picamera.PiCameraCircularIO(picam, seconds=self.vr_backtime+1, splitter_port=self.vr_splitter_port)
                             picam.split_recording(circstream, splitter_port=self.vr_splitter_port)
                             self.vr_status='waiting'
+                            self.vr_activefile = '-'
                             print('cr: file now to circ stream') 
                         else:
                             picam.stop_recording(splitter_port=self.vr_splitter_port)
                             self.vr_status='ready'
+                            self.vr_activefile = '-'
                             print('recording stopped')
                         self.processfiles((False, fpath.with_name(fpath.name+'%03d' % recordingsequ).with_suffix('.h264')))
                     elif self.vr_forwtime > 0 and triggers_end is None: # set a trigger end time
@@ -203,9 +208,12 @@ class VideoRecorder():
             while not trig is None:
                 if act=='add':
                     trigset.add(trig)
+                    print('added trigger')
                 elif act=='done':
                     trigset.remove(trig)
+                    print('removed trigger')
                 else:
+                    print('trig set', act)
                     trig.trig_on=act
                     if act:
                         if not trig.clear_time is None:
@@ -222,10 +230,12 @@ class VideoRecorder():
             picam.stop_recording(splitter_port=self.vr_splitter_port)
         if not self.procthread is None:
             self.procqueue.put('stop')
+        self.vr_activefile = '-'
         self.camhand._releaseSplitterPort(self, self.vr_splitter_port)
         self.vr_splitter_port = None
         self.vr_status = 'off'
         self.monthread=None
+        print('record on demand monitor finished')
 
     def processfiles(self, data):
         print('processfiles requests', data)
@@ -300,18 +310,6 @@ class VideoRecorder():
             rdat = ((id, {'value':'STOP', 'bgcolor': 'red', 'disabled': False}),)
         return rdat
 
-    def ready_web(self, id):
-        """
-        method called from web browser front end - flips ready state
-        """
-        if self.vr_web_trigger is None:
-            self.vr_web_trigger=self.ready()
-            rdat=((id,{'value': 'disable recorder', 'disabled': False, 'bgcolor': 'pink'}),(id[:-1]+'2',{'disabled': False}))
-        else:
-            self.unready(self.vr_web_trigger)
-            self.vr_web_trigger=None
-            rdat=((id,{'value': 'enable recorder', 'disabled': False, 'bgcolor': None}),(id[:-1]+'2', {'disabled': True}))
-        return rdat
 
 class trigger():
     """
