@@ -26,12 +26,12 @@ Python 3.7 or later is needed. Flask must be installed before using.
 1. Use git clone or download and unzip a zip of this repository.
 1. in a command / shell window:
 1. cd into the folder
-2. cd into examples
-3. cd into tut1
-4. declare a couple of shell variables that flask expects - for example:
-4.1. `export FLASK_APP=tut1.py`
-4.2. `export FLASK_ENV=development`
-5. type `flask run --host=0.0.0.0`
+1. cd into examples
+1. cd into tut1
+1. declare a couple of shell variables that flask expects - for example:
+   1. `export FLASK_APP=tut1.py`
+   2. `export FLASK_ENV=development`
+1. type `flask run --host=0.0.0.0`
 
 ## The sample tut1
 The app is a trivial, and shows a few fields that are updates by the app and a button that invokes a method on the app's class.
@@ -61,11 +61,4 @@ The result automatically updates when any of the 3 properties is changed.
 The web page also displays a timer based html progress bar, this is implemented in the class that extends the app to web enable it.
 The class uses a [@property decorator[(https://docs.python.org/3/library/functions.html#property) is used to generate a value for the progress bar.
 
-## The web page template
-Each web page (1 in the sample apps) is a file of HTML the web server uses python's string formating to fill in all the relevant variable values.
-
-The web server code loads the template file, and uses [python's string.format](https://docs.python.org/3/library/string.html#format-string-syntax), passing the app as a parameter. This means any property of the app
-can be accesed and formatted using standard python for insertion into the web page. Methods can also easily be called by providing suitable property
-decorated with @property.
-
-This gives the template direct access to the class' properties, as well as properties of classes within the app, or even dictionary antries within dicts that are part of the app's class. 
+[See the wiki for more](wiki)
