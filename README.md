@@ -61,4 +61,4 @@ The result automatically updates when any of the 3 properties is changed.
 The web page also displays a timer based html progress bar, this is implemented in the class that extends the app to web enable it.
 The class uses a [@property decorator[(https://docs.python.org/3/library/functions.html#property) is used to generate a value for the progress bar.
 
-[See the wiki for more](wiki)
+[See the wiki for more](https://github.com/pootle/pyweb/wiki) - page list in right panel
