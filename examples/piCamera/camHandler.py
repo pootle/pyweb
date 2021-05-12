@@ -54,11 +54,11 @@ class cameraManager():
         with picamera.PiCamera() as tempcam:
             self.camType=tempcam.revision
             self.cam_resolution = cam_resolutions[self.camType][1]
-            self.cam_resolution_LIST = {'display':cam_resolutions[self.camType][0]}
+            self.cam_resolution_LIST = {'values':cam_resolutions[self.camType][0]}
             self.cam_u_width = self.cam_resolution[0]       # when camera resolution is special, specific values here are used
             self.cam_u_height = self.cam_resolution[1]
             self._cam_rotation = tempcam.rotation
-            self.cam_rotation_LIST = {'display': ('0', '90', '180', '270')}
+            self.cam_rotation_LIST = {'values': (0, 90, 180, 270), 'display': ('0', '90', '180', '270')}
             self._cam_hflip = tempcam.hflip
             self.cam_hflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
             self._cam_vflip = tempcam.vflip
@@ -102,7 +102,7 @@ class cameraManager():
     def make_attr_list(self, attr, picam):
         alist=getattr(picam, attr.upper()+'S')
         setattr(self, 'cam_'+attr+'_LIST', {
-            'display': [str(choice) for choice in alist.keys()],
+            'values': [str(choice) for choice in alist.keys()],
         })
         current=getattr(picam, attr)
         setattr(self, 'cam_'+attr, current)

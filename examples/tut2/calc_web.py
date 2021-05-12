@@ -61,7 +61,7 @@ class webbaby(flaskextras.webify, calc_class.mymaths):
         is reloaded or a fresh browser page is opened).
         """
         return flaskextras.make_subselect(
-                choices=self.valid_ops(),
+                values=self.valid_ops(),
                 selected=self.operation)
 
     @property

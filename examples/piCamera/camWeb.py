@@ -34,7 +34,7 @@ class web_picam(flaskextras.webify, camHandler.cameraManager):
     @property
     def select_res(self):
         return make_subselect(
-                choices=camHandler.cam_resolutions[self.camType],
+                values=camHandler.cam_resolutions[self.camType],
                 selected=self.cam_resolution)
 
     def record_enable_flip(self, id):

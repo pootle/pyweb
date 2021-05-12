@@ -104,25 +104,25 @@ class webify(Flask):
         if fparam.endswith('sel'):
             attr = fparam[:-3]
             print('trying with', attr, file=sys.stderr)
-            return make_subselect(getattr(self, attr+'_LIST')['display'], selected=getattr(self,attr))
+            return make_subselect(**getattr(self, attr+'_LIST'), selected=getattr(self,attr))
         else:
             return super().__format__(fparam)
 
-def make_subselect(choices, selected, display=None):
+def make_subselect(values, selected, display=None):
     """
     Function to create the (inner)) html for a drop down list (<select>)
     
-    choices: the list of options as seen by the app - displayed to the user if display is None
+    values: the list of options as seen by the app - displayed to the user if display is None
     
     selected: the current value - if display is present, one of display, otherwise one of choices
     
     display:  if present, this is the list the user will see 
     """
     if display is None:
-        return ''.join(['<option{sel}>{val}</option>'.format(sel=' selected ' if item == selected else '', val=item)  for item in choices])
+        return ''.join(['<option{sel}>{val}</option>'.format(sel=' selected ' if item == selected else '', val=item)  for item in values])
     else:
-        assert len(display)==len(choices)
-        return ''.join(['<option name="{}"{}>{}</option>'.format(name, ' selected ' if name == selected else '', disp)  for name, disp in zip(choices, display)])
+        assert len(display)==len(values)
+        return ''.join(['<option name="{}"{}>{}</option>'.format(name, ' selected ' if name == selected else '', disp)  for name, disp in zip(values, display)])
 
 def updatestreamgen(updatefunc):
     """

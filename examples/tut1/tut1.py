@@ -1,7 +1,7 @@
 import sys, time
 sys.path.append('../..')
 import flaskextras
-from flask import redirect
+from flask import redirect, url_for
 
 run_time_string='{mins:d}:{secs:02d} (m:s)'
 
@@ -55,5 +55,4 @@ def redir():
 @app.route('/index')
 def index():
     with open('templates/index.html', 'r') as tfile:
-        template=tfile.read()
-    return template.format(app=app)    
+        return tfile.read().format(app=app) 
