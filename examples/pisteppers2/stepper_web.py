@@ -2,85 +2,69 @@
 
 import sys
 sys.path.append('../..')
-import stepgenconstacc as sg, stepperunid as sud, simpleweb, netinf
-import time, pigpio, threading
+import stepgenconstacc as sg, stepperunid as sud, flaskextras, netinf
+import time, pigpio
+from flask import redirect, url_for
 
 from unidsettings import stepping_params, drivepins
 
-class webstepper(sud.Unipolar_direct, simpleweb.webify):
-    def get_server_def(self):
+class webstepper(flaskextras.webify, sud.Unipolar_direct):
+    def __init__(self):
         """
-        This method is called by the web server as it starts. It returns the list of pages the app will
-        respond to and details how to handle each of them
+        in addition to constructing the base classes, initialise a couple of variables used to run the 
+        progress bar.
         """
-        return {
-            'GET': {
-                ''              : ('redirect', '/index.html'),
-                'index.html'    : ('app_page', {'template': 'index.html'}),
-            },
-            'static': '../static',
-        }
-
-    def get_updates(self, pageid):
-        """
-        called at regular intervals from the web server code for an active page with fields that need updating
-        """
-        self.is_active()
-        if pageid == 'index':
-            return [
-                ('current_pos', '%5.1f' % self.current_pos),
-                ('drive_state', self.drive_state),
-                ('drive_mode', self.drive_mode),
-                ('max_tps-f','%7.2f'%self.max_tps),
-                ('current_tps', '%9.2f' % self.current_tps),
-                ('acceleration-f', '%7.2f' % self.acceleration),
-                ]
-        return {}
-
-    @property
-    def dmselect(self):
-        cc=['off']+list(self.stepping_params.keys())
-        yyy = simpleweb.make_subselect(cc, self.step_style)
-        return yyy
-
-    @property
-    def set_motor_mode(self):
-        return None
-
-    @set_motor_mode.setter
-    def set_motor_mode(self, val):
-        self.run_motor(val)
-
-if __name__ == '__main__':
-    steps_per_unit=2049*4*8/360
-    pio=pigpio.pi(show_errors=False)
-    if pio.connected:
-        mot=webstepper( pigp=pio, 
+        steps_per_unit=2049*4*8/360
+        pio=pigpio.pi(show_errors=False)
+        if pio.connected:
+            sud.Unipolar_direct.__init__(self, pigp=pio, 
                         drvpins=drivepins, 
                         holdpower=0.3, 
                         stepping_params=stepping_params,
                         unit_scale = steps_per_unit,
                         current_pos = 0)
-        server = simpleweb.MultiServer(app=mot, port=8000)
-        serverthread = threading.Thread(target=server.serve_forever, name='webserver')
-        serverthread.start()
-        netinf.showserverIP(8000)
-        try:
-            while True:
-                time.sleep(3)
-        except KeyboardInterrupt:
-            server.tidyclose()
-            mot.clean_stop()
-            while mot.is_active():
-                time.sleep(1)
-            time.sleep(0.5)
-            pio.stop()
-            print('close on keyboard interrupt')
-        except:
-            mot.crash_stop()
-            server.tidyclose()
-            pio.stop()
-            raise
-    else:
-        print('pigpio failed to open. Is the daemon running?')
+            netinf.showserverIP(5000)
+            updateindex={'index': self.index_updates}
+            flaskextras.webify.__init__(self, __name__, updateindex)
+        else:
+            raise RuntimeError('pigpio init failure - is the daemon running?') 
+
+    def index_updates(self):
+        """
+        called at regular intervals from the web server code for the index page with fields that need updating
+        """
+        self.is_active()
+        return [
+            ('current_pos', {'value': '%5.1f' % self.current_pos}),
+            ('drive_state', {'value': self.drive_state}),
+            ('drive_mode',  {'value': self.drive_mode}),
+            ('max_tps',     {'value': '%7.2f'%self.max_tps}),
+            ('current_tps', {'value': '%9.2f' % self.current_tps}),
+            ('acceleration',{'value': '%7.2f' % self.acceleration}),
+            ]
+
+    @property
+    def step_style_LIST(self):
+        return {'values': list(self.stepping_params.keys())}
+
+    def start_stop_motor(self,id):
+        if self.drive_state=='off':
+            self.run_motor(self.step_style)
+            rdat=((id,{'value': 'STOP', 'bgcolor': 'red', 'disabled': False}),)
+        else:
+            self.run_motor('off')
+            rdat=((id,{'value': 'Run Motor', 'bgcolor': None, 'disabled': False}),)
+        return rdat
+
+onemotor = webstepper()
+
+@onemotor.route('/')
+def redir():
+    return redirect(url_for('index'))
+
+@onemotor.route('/index')
+def index():
+    with open('templates/index.html', 'r') as tfile:
+        template=tfile.read()
+    return template.format(app=onemotor)    
     

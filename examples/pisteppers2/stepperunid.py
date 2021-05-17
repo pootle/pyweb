@@ -90,11 +90,11 @@ class Unipolar_direct:
                 for steppingdef in steptable:
                     assert steppingdef[0] == 'block', str(steppingdef)
             stepentry['prep_tables'] = tuple((make_step_set(steppingdef, self.pins), steppingdef[2], steppingdef[3]) for steppingdef in steptable)
-            print('stepset %s prepared tables:' % stepsetname)
-            for stepset in stepentry['prep_tables']:
-                print('    table length : %d' % len(stepset[0]))
-                print('         max tps : %d' % stepset[1])
-                print('      microsteps : %d' % stepset[2])
+#            print('stepset %s prepared tables:' % stepsetname)
+#            for stepset in stepentry['prep_tables']:
+#                print('    table length : %d' % len(stepset[0]))
+#                print('         max tps : %d' % stepset[1])
+#                print('      microsteps : %d' % stepset[2])
         self.stepindex=0
         self.output_enable(False)
         self.unit_scale = unit_scale
@@ -105,7 +105,7 @@ class Unipolar_direct:
         self.drive_state='off'
         self.drive_thread = None
         self.step_gen = None
-        self.step_style = 'off'
+        self.step_style = list(self.stepping_params.keys())[0]
         self.last_table=list(self.stepping_params.values())[0]['prep_tables'][0][0]
         
     @property
@@ -194,10 +194,11 @@ class Unipolar_direct:
             else:
                 raise ValueError('motor is already running')
 
-    def clean_stop(self):
+    def tidy_close(self):
         """
         decelerate if running then stop, including stopping the active thread.
         """
+        print('clean shutdown motor invoked')
         if not self.drive_thread is None:
             self.step_gen.clean_stop()
 

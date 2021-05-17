@@ -17,47 +17,53 @@
         <form autocomplete="off">
         <div class="rowsncols">
             <div class="row">
-                <div class="rowlabel">step style:</div><select id="set_motor_mode-s" onchange="field_changed(this)">{app.dmselect}</select>
+                <label class="rowlabel" for="step_style" >step style:</label>
+                <select id="step_style" onchange="field_update(this, 'sel')">{app:step_stylesel}</select>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">driver mode:</div><div class="cell" id="drive_mode">{app.drive_mode:s}</div>
+                <label class="rowlabel">target pos:</label>
+                <input class="cell" type="text" value="0" onchange="field_update(this, 'float')" id="target_pos" autocomplete="off" style="width: 7em;" />
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">state:</div><div class="cell" id="drive_state">{app.drive_state:s}</div>
+                <input type="button" onclick="app_action(this, 'start_stop_motor')" id="ss_motor" value="Run Motor"  style="grid-column: 1;" />
+                <div class="cell" id="drive_mode">{app.drive_mode:s}</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">current pos:</div><div class="cell" id="current_pos">{app.current_pos:05.1f}</div>
+                <label class="rowlabel">state:</label>
+                <div class="cell" id="drive_state">{app.drive_state:s}</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-            <div class="row">
-                <div class="rowlabel">current tps:</div><div class="cell" id="current_tps">{app.current_tps:9.2f}</div>
+                <label class="rowlabel">current pos:</label>
+                <div class="cell" id="current_pos">{app.current_pos:05.1f}</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">target pos:</div>
-                <input class="cell" type="text" step="any" value="0" onchange="field_changed(this)" id="target_pos-f" autocomplete="off" style="width: 7em;" />
+                <label class="rowlabel">current tps:</label>
+                <div class="cell" id="current_tps">{app.current_tps:9.2f}</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">steps per degree:</div><div class="cell">{app.unit_scale:7.3f}</div>
+                <label class="rowlabel">steps per degree:</label>
+                <div class="cell">{app.unit_scale:7.3f}</div>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">max tps:</div>
-                <input class="cell" type="text" step="any" value="{app.max_tps:7.2f}" onchange="field_changed(this)" id="max_tps-f" autocomplete="off" style="width: 7em;"/>
+                <label class="rowlabel">max tps:</label>
+                <input class="cell" type="text" value="{app.max_tps:7.2f}" onchange="field_update(this, 'float')" id="max_tps" autocomplete="off" style="width: 7em;"/>
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">accel - decel tps/s:</div>
-                <input class="cell" type="text" step="any" value="{app.acceleration:7.2f}" onchange="field_changed(this)" id="acceleration-f" autocomplete="off" style="width: 7em;" />
+                <label class="rowlabel">accel - decel tps/s:</label>
+                <input class="cell" value="{app.acceleration:7.2f}" onchange="field_update(this, 'float')" id="acceleration" autocomplete="off" style="width: 7em;" />
             </div>
-            <div class="rowsep"></div><div class="rowsep"></div>
+            <div class="rowsep"></div>
             <div class="row">
-                <div class="rowlabel">drive pins:</div><div class="cell">{app.pins}</div>
+                <label class="rowlabel">drive pins:</label>
+                <div class="cell">{app.pins}</div>
             </div>
         </div>
         </form>

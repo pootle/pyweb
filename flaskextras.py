@@ -1,4 +1,4 @@
-import sys, time, json
+import sys, time, json, atexit, traceback
 from flask import redirect, request, Response, jsonify, Flask
 
 class webify(Flask):
@@ -7,11 +7,20 @@ class webify(Flask):
     to provide an easy mechanism to call methods in the app,
     """
     def __init__(self, appname, page_updators):
+        """
+        Setup extra functionality on top of Flask.
+        
+        Sets up a few standard urls and the methods to handle them.
+        
+        Also registers a shutdown function if necessary
+        """
         super().__init__(appname)
         self.webify_page_update_index = page_updators
         self.add_url_rule('/appupdates', view_func=self.webify_doappupdates)
         self.add_url_rule('/field_update', view_func=self.webify_fieldupdator)
         self.add_url_rule('/app_action', view_func=self.webify_app_action_call, methods=('REQUEST',))
+        if hasattr(self, 'tidyclose'):
+            atexit.register(self.tidyclose)
 
     def webify_app_action_call(self):
         """
@@ -62,7 +71,7 @@ class webify(Flask):
             elif ftype=='sel':      # from a select field
                 field_info = getattr(targetob, targetatt+'_LIST', None)
                 if not field_info is None:
-                    val_index = field_info['display'].index(valstring)
+                    val_index = field_info['values'].index(valstring)
                     if 'values' in field_info:
                         newval = field_info['values'][val_index]
                     else:
@@ -77,6 +86,7 @@ class webify(Flask):
                         ('alert', "I'm sorry Dave, I don't understand %s as a field type"%ftype),))
         except:                 # any exception here means we couldn't convert the string to the expected type
                 print('web_field_update failed - failed to handle %s of type %s for field %s' % (valstring, ftype, id), file=sys.stderr)
+                traceback.print_exc()
                 return jsonify(((fid, {'disabled':False}),
                             ('alert', "I'm sorry Dave, I couldn't make sense of the value %s" % valstring),))
         try:
