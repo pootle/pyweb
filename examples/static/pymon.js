@@ -7,10 +7,20 @@ function field_update(ele, ftype) {
 function app_action(ele, action) {
     // called (mostly) from button's onclick
     call_server(ele, 'app_action', {
-        headers: {"content-type":"application/json; charset=UTF-8"},
+        headers: {"content-type":"application/json; charset=UTF-8",
+                  "cache": "no-store"},
         body   : JSON.stringify({"id": ele.id, 'action': action}),
         method : "REQUEST"
         });
+}
+
+function app_call_f(ele, path) {
+    call_server(ele, path, {
+        headers: {"content-type":"application/json; charset=UTF-8",
+                  "cache": "no-store"},
+        body   : JSON.stringify({"id": ele.id}),
+        method : "REQUEST"
+    });
 }
 
 async function call_server(ele, url, params) {
@@ -20,6 +30,7 @@ async function call_server(ele, url, params) {
         The originating field is disabled, normally the updates in the response will enable it again 
     */
     ele.disabled=true;
+    console.log('send request to >'+url+ '<')
     let response = await fetch(url, params);
     if (response.ok) { // if HTTP-status is 200-299
         let updates = await response.json();

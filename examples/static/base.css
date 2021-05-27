@@ -13,6 +13,12 @@ input[type=text]:focus {
   border: 3px solid #555;
 }
 
+.viewport {
+  display: grid;
+  grid-template-columns: 15px 700px;
+  grid-template-rows: 15px 700px;
+}
+
 .rowsncols {
   display: grid;
   grid-template-columns: 

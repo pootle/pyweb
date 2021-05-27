@@ -5,6 +5,7 @@ to several seconds after the trigger.
 """
 import threading, queue, time, pathlib, shutil
 from subprocess import Popen, PIPE
+from flask import jsonify
 
 class VideoRecorder():
     """
@@ -21,11 +22,11 @@ class VideoRecorder():
     
     When recording starts the status updates to recording.
     """
-    def __init__(self, camhand):
+    def __init__(self, parent):
         """
         initialisation just sets up the vars used.
         """
-        self.camhand=camhand
+        self.camhand=parent
         self.vr_status = 'off'        #off, ready, waiting or recording
         self.vr_width = 640
         self.vr_height = 480
@@ -43,30 +44,32 @@ class VideoRecorder():
         self.vr_protect=threading.Lock()
         self.vr_monthread = None
         self.procthread = None
+        self.vr_web_trigger=None
         self.vr_trig_queue=queue.Queue()
+        self.saveable_settings=('vr_width', 'vr_height', 'vr_folder', 'vr_filename', 'vr_backtime', 'vr_forwtime', 'vr_record_limit',
+            'vr_max_merge', 'vr_saveh264')
         # and this to support web browser front end
-
-    def ready(self, timeout=300):
+        parent.add_url_rule('/flip-trigger', view_func=self.flip_record_trigger, methods=('REQUEST',))
+        parent.add_url_rule('/flip-record', view_func=self.record_now, methods=('REQUEST',))
+        
+    def get_trigger(self, timeout=300):
         """
-        prepare video recording, and return a trigger instance
+        prepare for video recording, and return a trigger instance
         """
-        self.camhand.start_camera()    # starts the camera if not already running
         with self.vr_protect:
             newtrig = trigger(self.vr_trig_queue, timeout=timeout)
-            print('readying')
-            if self.vr_splitter_port is None:
-                self.vr_splitter_port = self.camhand._getSplitterPort(self)
-                self.vr_status = 'ready'
+            if self.vr_monthread is None:
+                self.camhand.start_camera()   # starts camera if not running
                 self.vr_monthread = threading.Thread(name='recorder', target=self.monitor, args=[newtrig])
                 self.vr_monthread.start()
             else:
                 print('already ready')
                 self.vr_trig_queue.put((newtrig,'add'))   # add to q first so the new thread has one to pick up
-            return newtrig
+        return newtrig
 
-    def unready(self, trig):
+    def drop_trigger(self, trig):
         """
-        release a trigger and stop recording if appropriate
+        release a trigger (monitor will stop recording if appropriate)
         
         The trigger is removed from the active set and the monitor thread will take 
         appropriate action in due course
@@ -94,6 +97,8 @@ class VideoRecorder():
         vformat='.h264'
         trigset=set([newtrigger])
         triggers_end=None
+        self.vr_splitter_port = self.camhand._getSplitterPort(self)
+        self.vr_status = 'ready'
         print('record on demand monitor running')
         while len(trigset) > 0:
             timenow=time.time()
@@ -234,7 +239,7 @@ class VideoRecorder():
         self.camhand._releaseSplitterPort(self, self.vr_splitter_port)
         self.vr_splitter_port = None
         self.vr_status = 'off'
-        self.monthread=None
+        self.vr_monthread=None
         print('record on demand monitor finished')
 
     def processfiles(self, data):
@@ -297,18 +302,41 @@ class VideoRecorder():
                 else:
                     print('MP4Box stderr:'+str(errs))
 
-    def record_now(self, id):
+###############################################
+# additional methods to support web front end #
+###############################################
+    def flip_record_trigger(self):
+        """
+        The full web page part for this includes buttons to fetch a record trigger, and start stop the trigger.
+        
+        If there is no current trigger, this method sets up a trigger - which starts the video stream if necessary. 
+        otherwise it drops the trigger. If there are then no active triggers, the video stream will shut down.
+        
+        This method and 'record_now' show how other software can use the recorder.
+        """
+        if self.vr_web_trigger is None:
+            self.vr_web_trigger=self.get_trigger()
+            rdat=(('recorder_btn1',{'value': 'disable recorder', 'disabled': False, 'bgcolor': 'pink'}),
+                  ('recorder_btn2',{'disabled': False, 'bgcolor': None}))
+        else:
+            self.drop_trigger(self.vr_web_trigger)
+            self.vr_web_trigger=None
+            rdat=(('recorder_btn1',{'value': 'enable recorder', 'disabled': False, 'bgcolor': None}),
+                  ('recorder_btn2', {'value': 'record now', 'disabled': True, 'bgcolor': None}))
+        return jsonify(rdat)
+
+    def record_now(self):
         """
         method called from web browser to start / stop recording
         """
         print('trigger is', self.vr_web_trigger.trig_on)
         if self.vr_web_trigger.trig_on:
             self.vr_web_trigger.clear_trigger()
-            rdat = ((id, {'value':'record now', 'bgcolor': None, 'disabled': False}),)
+            rdat = (('recorder_btn2', {'value':'record now', 'bgcolor': None, 'disabled': False}),)
         else:
             self.vr_web_trigger.set_trigger()
-            rdat = ((id, {'value':'STOP', 'bgcolor': 'red', 'disabled': False}),)
-        return rdat
+            rdat = (('recorder_btn2', {'value':'STOP', 'bgcolor': 'red', 'disabled': False}),)
+        return jsonify(rdat)
 
 
 class trigger():

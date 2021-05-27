@@ -58,7 +58,9 @@ The web front end enables all 3 of the properties to be changed, and a 4th field
 
 The result automatically updates when any of the 3 properties is changed.
 
-The web page also displays a timer based html progress bar, this is implemented in the class that extends the app to web enable it.
+The web page also displays a timer based html progress bar, and a dial style progress meter . The progress bar is implemented in the class that extends the app to web enable it.
+
+The dial meter uses https://github.com/tigrr/circle-progress. You will need to download the js from this repo and put it in the static folder
 The class uses a [@property decorator[(https://docs.python.org/3/library/functions.html#property) is used to generate a value for the progress bar.
 
 [See the wiki for more](https://github.com/pootle/pyweb/wiki) - page list in right panel

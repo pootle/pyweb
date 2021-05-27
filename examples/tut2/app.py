@@ -3,6 +3,7 @@
 import time, sys
 sys.path.append('../..')
 import flaskextras, netinf, calc_class
+from flask import redirect, url_for
 
 class webbaby(flaskextras.webify, calc_class.mymaths):
     """
@@ -38,6 +39,7 @@ class webbaby(flaskextras.webify, calc_class.mymaths):
         """
         return [
             ('prog_bar', {'value': str(self.current_ops)}),
+            ('#progress', {'value': self.current_ops}),
         ]
 
     def do_sum(self, id):

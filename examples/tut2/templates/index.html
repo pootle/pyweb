@@ -1,11 +1,16 @@
 <html>
     <head>
         <script src="static/pymon.js"></script>
+        <script src="static/circle-progress.js"></script>
         <script type="text/javascript">
             window.onload=startup
-
+            var circleProgress;
             function startup() {{
                 liveupdates("index");
+                circleProgress = new CircleProgress('.progress');
+                circleProgress.min=0;
+                circleProgress.max=20;
+                circleProgress.value=0;
             }}
         </script>
         <link rel="stylesheet" href="static/base.css">
@@ -41,6 +46,7 @@
                 <progress id="prog_bar" value="{app.current_ops:d}" max="{app.target_ops:d}" />
             </div>
         </div>
+        <div class="progress"></div>
         </form>
     </body>
 </html>

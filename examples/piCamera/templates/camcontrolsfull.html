@@ -1,0 +1,53 @@
+<div class = "grouphead">
+    <div class="headercell" >Camera settings</div><img class="group_button" onclick="show_hide('cameragroup', this)" src="static/openuparrow.svg" />
+</div>
+<div class="group" id="cameragroup">
+    <input value="{cpart.cam_zoom_left}" onchange="field_update(this, 'float')" id="cam_zoom_left" style="display:none;" />
+    <input value="{cpart.cam_zoom_right}" onchange="field_update(this, 'float')" id="cam_zoom_right" style="display:none;" />
+    <input value="{cpart.cam_zoom_top}" onchange="field_update(this, 'float')" id="cam_zoom_top" style="display:none;" />
+    <input value="{cpart.cam_zoom_bottom}" onchange="field_update(this, 'float')" id="cam_zoom_bottom" style="display:none;" />
+    <div class="row">
+        <label class="rowlabel" for="cam_resolution-s" >resolution:</label>
+        <select id="cam_resolution" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_resolutionsel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_rotation" >rotation:</label>
+        <select id="cam_rotation" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_rotationsel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_hflip" >hflip:</label>
+        <select id="cam_hflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_hflipsel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_vflip" >vflip:</label>
+        <select id="cam_vflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_vflipsel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="" >awb mode:</label>
+        <select id="cam_awb_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_awb_modesel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_exposure_mode" >exposure mode:</label>
+        <select id="cam_exposure_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_exposure_modesel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_meter_mode" >meter mode:</label>
+        <select id="cam_meter_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_meter_modesel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_exposure_compensation" >exposure compensation:</label>
+        <select id="cam_exposure_compensation" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_exposure_compensationsel}</select>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_contrast" >contrast:</label>
+        <input class="cell" value="{cpart.cam_contrast}" onchange="field_update(this, 'int')" id="cam_contrast" style="width: 7em;" />
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_brightness" >brightness:</label>
+        <input class="cell" value="{cpart.cam_brightness}" onchange="field_update(this, 'int')" id="cam_brightness" style="width: 7em;" />
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_drc_strength" >dynamic range compression:</label>
+        <select id="cam_drc_strength" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_drc_strengthsel}</select>
+    </div>
+</div>

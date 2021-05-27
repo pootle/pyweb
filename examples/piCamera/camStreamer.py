@@ -5,19 +5,20 @@ streams images to (multiple) clients from the picamera by calling start_recordin
 It stops recording when there have beem no active clients for the timeout period
 """
 import time, threading, io, sys
-
 from enum import Flag, auto
-
 from picamera.exc import PiCameraNotRecording
+from flask import Response
 
 class Streamer():
     """
-    This class is written to work with camHandler and provide an mjpeg stream from the camera on demand, typically.
-    to provide a live stream from the camera (but any source of a sequence of jpegs could be used).
+    This class is written to work with camHandler and provides an mjpeg stream from the camera on demand. The stream
+    uses piCamera.start_recording to fetch a stream of images. Images are provided using a generator.
     
     It allows multiple streams to be driven from the source stream.
+    
+    When all streams become inactive, after a timeout period, it will shut down the recording
     """
-    def __init__(self, camhand):
+    def __init__(self, parent):
         """
         initialisation just sets up the vars used.
         """
@@ -29,18 +30,17 @@ class Streamer():
         self.ls_lastactive = 0                  # last time a frame was read
         self.ls_protect=threading.Lock()
         self.ls_condition=None
-        self.camhand=camhand
+        self.camhand=parent
         self.monitor_active = False
+        parent.add_url_rule('/camstream', view_func=self.start_stream) # add the url handler to start a live stream
 
-    def get_stream(self):
+    def start_stream(self):
         """
-        When we get a stream request, check if already running and if not start everything up and return self.
+        When we get a stream request, check if already running and if not start everything up
         
         This is called by an http handler request thread.
         
-        THE HTTP thread (there can be several) then loops calling nextframe
-        
-        Note that start_recording internally runs a thread that will call write as each frame arrives.
+        THE HTTP thread (there can be several) then loops using the generator camstreamgen
         
         This also starts a thread to monitor activity. Once all running streams have stopped, we call stop_recording and release resoources
         
@@ -56,10 +56,11 @@ class Streamer():
                 self.ls_picam=self.camhand.start_camera()
                 self.ls_monthread=threading.Thread(name='livestream', target=self.monitor)
                 self.ls_picam.start_recording(self, format='mjpeg', splitter_port=self.ls_splitter_port, resize=resize)
+                            # start_recording runs a new thread and will call write (below) for each frame
                 self.monitor_active=True
                 self.ls_monthread.start()
                 self.ls_framecount = 0
-            return self
+        return Response(self.camstreamgen(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
     def write(self, buf):
         """
@@ -80,21 +81,13 @@ class Streamer():
             prints('boops', file=sys.stderr)
         return len(buf)
 
-    def nextframe(self):
-        """
-        The http handler thread(s) calls this to get each successive frame.
-        
-        It waits for a new frame to arrive, then updates the lastactive timestamp and returns the frame
-        """
-        with self.ls_condition:
-            self.ls_condition.wait()
-            self.ls_lastactive=time.time()
-        self.ls_framecount += 1
-        if self.ls_framecount % 20==0:
-            print('Framecount: %d' % self.ls_framecount, file=sys.stderr)
-        return self.ls_frame, 'image/jpeg', len(self.ls_frame)
-
     def monitor(self):
+        """
+        When a stream request starts the camera recording, it also starts this monitor in a new thread.
+        
+        This thread just periodically checks for errors and ongoing activity. Once all activity has
+        stopped it stops the camera recording and also exits the thread 
+        """
         while True:
             try:
                 self.ls_picam.wait_recording(2, splitter_port=self.ls_splitter_port)
@@ -116,4 +109,15 @@ class Streamer():
                     self.ls_splitter_port=None
                     self.ls_condition = None
                 break
-        print('camera stream monitor thread exits', file=sys.stderr)
+        print('camera stream monitor thread exits, %d frames deliverd' % self.ls_framecount, file=sys.stderr)
+
+    def camstreamgen(self):
+        self.start_stream()
+        while True:
+            with self.ls_condition:
+                self.ls_condition.wait()
+                newframe=self.ls_frame
+            self.ls_lastactive=time.time()
+            self.ls_framecount += 1
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + newframe + b'\r\n')

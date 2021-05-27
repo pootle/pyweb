@@ -1,7 +1,37 @@
 import sys, time, json, atexit, traceback
 from flask import redirect, request, Response, jsonify, Flask
 
-class webify(Flask):
+class formathtml():
+    """
+    speshull version of dunder format to make building dynamic html easier
+    """
+    def __format__(self, fparam):
+        """
+        special version of format that extends formatting for this and inheriting classes.
+        
+        droppdown fields:
+            for fields that use a drop down list on the web page. If the format param ends with 'sel' then the 
+            string preceding 'sel' is the attribute name with the current drop down value, and this code expects to find
+            an attibute <name>_LIST which is a dict with info to create the dropdown.
+        
+        embedding parts:
+            optional or variant html can be included 
+        
+        """
+        if fparam.endswith('sel'):
+            attr = fparam[:-3]
+            return make_subselect(**getattr(self, attr+'_LIST'), selected=getattr(self,attr))
+        elif fparam.startswith('cpart-'):
+            partname, templatename = fparam[6:].split('-')
+            tfile='templates/'+templatename+ '.html'
+            with open(tfile, 'r') as tfile:
+                template=tfile.read()
+                return template.format(cpart=self if partname=='' else self.cparts[partname]) 
+        else:
+            return super().__format__(fparam)
+
+
+class webify(Flask, formathtml):
     """
     Inherit from this class to provide the added functionality to allow dynamic updates of a web page by the app and 
     to provide an easy mechanism to call methods in the app,
@@ -71,10 +101,11 @@ class webify(Flask):
             elif ftype=='sel':      # from a select field
                 field_info = getattr(targetob, targetatt+'_LIST', None)
                 if not field_info is None:
-                    val_index = field_info['values'].index(valstring)
-                    if 'values' in field_info:
+                    if 'display' in field_info:
+                        val_index = field_info['display'].index(valstring)    # exception if value not in list
                         newval = field_info['values'][val_index]
                     else:
+                        val_index = field_info['values'].index(valstring) 
                         newval = valstring
                 else:
                     print('failed to find select list %s in %s' % (targetatt+'_LIST', targetob), file=sys.stderr)
@@ -86,7 +117,6 @@ class webify(Flask):
                         ('alert', "I'm sorry Dave, I don't understand %s as a field type"%ftype),))
         except:                 # any exception here means we couldn't convert the string to the expected type
                 print('web_field_update failed - failed to handle %s of type %s for field %s' % (valstring, ftype, id), file=sys.stderr)
-                traceback.print_exc()
                 return jsonify(((fid, {'disabled':False}),
                             ('alert', "I'm sorry Dave, I couldn't make sense of the value %s" % valstring),))
         try:
@@ -104,19 +134,6 @@ class webify(Flask):
         appropriate to each page. 
         """
         return Response(updatestreamgen(self.webify_page_update_index[request.args['page']]), mimetype='text/event-stream; charset=utf-8')
-
-    def __format__(self, fparam):
-        """
-        special version of format that handles fields that use a drop down list on the web page. If the format param ends with 'sel' then the 
-        string preceding 'sel' is the attribute name with the current drop down value, and this code expects to find an attibute <name>_LIST
-        which is a dict with info to create the dropdown.
-        """
-        if fparam.endswith('sel'):
-            attr = fparam[:-3]
-            print('trying with', attr, file=sys.stderr)
-            return make_subselect(**getattr(self, attr+'_LIST'), selected=getattr(self,attr))
-        else:
-            return super().__format__(fparam)
 
 def make_subselect(values, selected, display=None):
     """

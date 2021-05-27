@@ -33,14 +33,61 @@ cam_resolutions={
     'imx477' : HQcam
 }
 
-class cameraManager():
+
+import importlib, traceback
+
+def getclass(modulename, classname):
+    """
+    fetches a class given the (text) name of the module and class)
+    """
+    return getattr(importlib.import_module(modulename), classname)
+
+class appHandler():
+    """
+    some basic housekeeping that might be useful elsewhere
+    """
+    def __init__(self, parts, settings=None):
+        """
+        sets up optional extra components for the app that are placed in a dict - self.cparts
+        """
+        self.cparts={}
+        for partname, modulename, partclass, partparams in parts:
+            try:
+                self.cparts[partname]=getclass(modulename, partclass)(parent=self, **partparams)
+            except:
+                print('failed to setup component: modulename %s, partclass %s, partparams %s' % (modulename, partclass, partparams))
+                traceback.print_exc()
+
+    def get_settings(self):
+        """
+        retrieves all the user-setable values for app and component settings as dicts, lists, ints, floats and strings, such
+        that they can be json converted to saved to a file for later re-use.
+        """
+        appatts={attname: getattr(self, attname) for attname in self.saveable_settings}
+        appatts['cparts'] = {}
+        for partname, part in self.cparts.items():
+            print(self.cparts[partname])
+            if hasattr(part,'saveable_settings'):
+                appatts[partname]={pattname: getattr(part,pattname) for pattname in part.saveable_settings}
+        return appatts
+
+class cameraManager(appHandler):
     """
     This class prepares all the settings that can be applied to a picamera.PiCamera and manages the running camera
     with its associated activities.
     
     It sets up for 4 potential video splitter ports, and initialises them to None to show they are unused.
+    
+    Attributes of the real camera (instance of piCamera class) are reflected into this class' attributes with '_cam_' prefixed.
+    This allows the values to be remembered even when the camera is not running (no instance of the class).
+    These attributes are then read / set by users of this class using the attributes 'cam_' + attribute ('no prefix underscore).
+    
+    For most attributes (those that the camera does not change itself), this class' value is returned, and when set, the set value
+    is saved and if the camera is open, the camera's corresponding attribute is also set.
+    
+    For attributes that the camera can itself change.  
     """
-    def __init__(self, parts=('livestream', 'vidrecord')):
+    def __init__(self, **kwargs):
         """
         Runs the camera and everything it does as well as other camera related activities
         """
@@ -48,8 +95,11 @@ class cameraManager():
         self.cameraTimeout=None
         self.activityports=[None]*4
         self.running=True
-        # keep a bunch of attributes about camera settings so the camera doesn't need to be open
         self.picam=None             # set when camera is running, cleared when stopped
+        self.saveable_settings=(
+            'cam_framerate', 'cam_resolution', 'cam_contrast', 'cam_brightness', 'cam_exposure_compensation', 'cam_rotation', 'cam_hflip', 'cam_vflip', 'cam_iso',
+            'cam_zoom_left', 'cam_zoom_top', 'cam_zoom_right', 'cam_zoom_bottom'
+        )
         self.cam_framerate = 10
         with picamera.PiCamera() as tempcam:
             self.camType=tempcam.revision
@@ -57,12 +107,12 @@ class cameraManager():
             self.cam_resolution_LIST = {'values':cam_resolutions[self.camType][0]}
             self.cam_u_width = self.cam_resolution[0]       # when camera resolution is special, specific values here are used
             self.cam_u_height = self.cam_resolution[1]
-            self._cam_rotation = tempcam.rotation
+            for cam_attr in ('contrast', 'brightness', 'exposure_compensation', 'rotation', 'hflip', 'vflip', 'iso'):
+                setattr(self, '_cam_'+cam_attr, getattr(tempcam, cam_attr))
             self.cam_rotation_LIST = {'values': (0, 90, 180, 270), 'display': ('0', '90', '180', '270')}
-            self._cam_hflip = tempcam.hflip
             self.cam_hflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
-            self._cam_vflip = tempcam.vflip
             self.cam_vflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
+            self.cam_iso_LIST = {'values': (0,100, 200, 320, 400, 500, 640, 800), 'display': ('0','100', '200', '320', '400', '500', '640', '800')}
             for cam_attr in ('awb_mode', 'exposure_mode', 'meter_mode', 'drc_strength'):
                  self.make_attr_list(cam_attr, tempcam)
             self.cam_exposure_compensation_LIST = {
@@ -72,32 +122,14 @@ class cameraManager():
                             '1', '1 1/6', '1 1/3', '1 1/2', '1 2/3', '1 5/6', '2', '2 1/6', '2 1/3', '2 1/2', '2 2/3', '2 5/6', 
                             '3', '3 1/6', '3 1/3', '3 1/2', '2 2/3', '3 5/6', '4', '4 1/6') 
             }
-            for cam_attr in ('contrast', 'brightness', 'exposure_compensation'):
-                setattr(self, '_cam_'+cam_attr, getattr(tempcam, cam_attr))
-                catt='_cam_'+cam_attr
-            self.zoom_left, self.zoom_top, zoom_width, zoom_height = tempcam.zoom
-            self.zoom_right = self.zoom_left+zoom_width
-            self.zoom_bottom = self.zoom_top+zoom_height
+            self.cam_zoom_left, self.cam_zoom_top, zoom_width, zoom_height = tempcam.zoom
+            self.cam_zoom_right = self.cam_zoom_left+zoom_width
+            self.cam_zoom_bottom = self.cam_zoom_top+zoom_height
 #        self.live_view_on = False
         self.cam_state = self.cam_summary = 'closed'
         self.autoclose = True
         self.auto_close_timeout = 10
-        self.picture_folder = '~/Photos'
-        self.picture_path = pathlib.Path(self.picture_folder).expanduser()
-        self.picture_path.mkdir(parents=True, exist_ok=True)
-        self.picture_filename='picam%y-%m-%d %H:%M:%S.jpg'
-        if 'livestream' in parts:
-            import camStreamer
-            self.streamer = camStreamer.Streamer(self)
-        else:
-            self.streamer = None
-        if 'vidrecord' in parts:
-            import camRecorder
-            self.vidrecord = camRecorder.VideoRecorder(self)
-            self.vidtrigger=None
-        else:
-            self.vidrecord = None
-            self.vidtrigger=None
+        super().__init__(**kwargs)
 
     def make_attr_list(self, attr, picam):
         alist=getattr(picam, attr.upper()+'S')
@@ -201,7 +233,7 @@ class cameraManager():
 
     @property
     def cam_exposure_compensation(self):
-        return self.cam_exposure_compensation_LIST['display'][self._cam_exposure_compensation+25]
+        return self._cam_exposure_compensation
 
     @cam_exposure_compensation.setter
     def cam_exposure_compensation(self, val):
@@ -214,6 +246,20 @@ class cameraManager():
             self.picam.exposure_compensation = ecval
         self._cam_exposure_compensation = ecval
 
+    @property
+    def cam_iso(self):
+        return self._cam_iso
+
+    @cam_iso.setter
+    def cam_iso(self, val):
+        if val in self.cam_iso_LIST['values']:
+            newval=val
+        elif val in self.cam_iso_LIST['display']:
+            newval= self.cam_iso_LIST[self.cam_iso_LIST['display'].index(val)]
+        else:
+            raise ValueError('%s is not an appropriate value for iso' % val)
+        
+
     def start_camera(self):
         """
         starts the camera using the settings originally passed to the constructor. Does nothing if the camera is already running.
@@ -223,7 +269,7 @@ class cameraManager():
             self.picam=picamera.PiCamera(
                     resolution=cres,
                     framerate=self.cam_framerate)
-            for camval in ('rotation', 'hflip', 'vflip', 'awb_mode', 'exposure_mode', 'meter_mode', 'drc_strength', 'exposure_compensation'):
+            for camval in ('rotation', 'hflip', 'vflip', 'awb_mode', 'exposure_mode', 'meter_mode', 'drc_strength', 'exposure_compensation', 'iso'):
                 setattr(self.picam, camval, getattr(self, '_cam_'+camval))
             self.set_zoom()
             self.cam_state= 'open'
@@ -246,7 +292,7 @@ class cameraManager():
 
     def set_zoom(self):
         if self.picam:
-            zp=self.zoom_left, self.zoom_top, self.zoom_right-self.zoom_left, self.zoom_bottom-self.zoom_top
+            zp=self.cam_zoom_left, self.cam_zoom_top, self.cam_zoom_right-self.cam_zoom_left, self.cam_zoom_bottom-self.cam_zoom_top
             print('set zoom', zp)
             self.picam.zoom=(zp)
 
@@ -274,9 +320,6 @@ class cameraManager():
         assert self.activityports[s_port] is activity
         self.activityports[s_port] =None
 
-    def get_cam_stream(self):
-        return self.streamer.get_stream() if not self.streamer is None else None
-
     def get_resize(self, targetsize):
         """
         returns a reize tuple if the target size is smaller than the currently set size the camera is using, otherwise
@@ -288,10 +331,6 @@ class cameraManager():
         else:
             return targetsize
 
-
-
-
-
     def fetchsettings(self):
         """
         override the standard fetchsettings to add in settings for the activities
@@ -302,7 +341,6 @@ class cameraManager():
         setts=super().fetchsettings()
         setts['acts']=acts
         return setts
-
 
     def changeframerate(self, watched, agent, newValue, oldValue):
         if self.picam:
@@ -323,9 +361,7 @@ class cameraManager():
                     if hasattr(camuser,'pausecamera'):
                         camuser.resumecamera()
 
-
-
-    def liveviewupd(self, watched, agent, newValue, oldValue):
+    def xxxliveviewupd(self, watched, agent, newValue, oldValue):
         if watched.getIndex() == 1:
             # turn on live view
             self.startCamera()
@@ -361,31 +397,6 @@ class cameraManager():
         self.log(wv.loglvls.INFO,"cameraManager runloop closing down")
         self.stopCamera()
         self.log(wv.loglvls.INFO,"cameraManager runloop finished")
-
-    def startDetectStream(self):
-        return None
-
-    def flipActivity(self, actname, withport, start=None, **kwargs):
-        """
-        starts and stops activities on demand
-        
-        actname:   name of the activity
-        
-        actclass:  class to use to create the activity
-        
-        withport:  if true, a splitter port is allocated and passed to the activity
-        
-        start   :  if True then the activity is started if not present, otherwise no action
-                   if False then the activity is stopped if present, otherwise no action is taken
-                   if None then the activity is stopped if present else it is started
-        """
-        if actname in self.activities and not start is True:
-            self.activities[actname].requestFinish()
-        elif not actname in self.activities and not start is False:
-            if withport:
-                self.startPortActivity(actname=actname, **kwargs)
-            else:
-                self.startActivity(actname=actname, **kwargs)
 
     def close(self):
         self.safeStopCamera()

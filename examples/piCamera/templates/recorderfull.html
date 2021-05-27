@@ -1,0 +1,29 @@
+<div class = "grouphead">
+    <div class="headercell" >video record settings</div><img class="group_button" onclick="show_hide('vidrecordgroup', this)" src="static/openuparrow.svg" />
+</div>
+<div class="group" id="vidrecordgroup">
+    <div class="row">
+        <input type="button" onclick="app_call_f(this, 'flip-trigger')" id="recorder_btn1" value="get / release trigger"  style="grid-column: 1;" />
+        <div class="cell" id="vr_status">{cpart.vr_status}</div>
+    </div>
+    <div class="row">
+        <input type="button" onclick="app_call_f(this, 'flip-record')" id="recorder_btn2" value="record now" style="grid-column: 1;" disabled/>
+        <div class="cell" id="vr_activefile">{cpart.vr_activefile}</div>
+    </div>
+    <div class="row">
+        <div class="rowlabel" for="vidrecord.vr_width" >vid record width:</div>
+        <input class="cell" value="{cpart.vr_width}" onchange="field_update(this, 'int')" id="vidrecord.vr_width" style="width:8pc;" />
+    </div>
+    <div class="row">
+        <div class="rowlabel" for="vidrecord.vr_height" >vid record height:</div>
+        <input class="cell" value="{cpart.vr_height}" onchange="field_update(this, 'int')" id="vidrecord.vr_height" style="width:8pc;" />
+    </div>
+    <div class="row">
+        <div class="rowlabel" for="vidrecord.vr_folder" >base recording folder:</div>
+        <input class="cell" value="{cpart.vr_folder}" onchange="field_update(this, 'str')" id="vidrecord.vr_folder" style="width:15pc;" />
+    </div>
+    <div class="row">
+        <div class="rowlabel" for="vidrecord.vr_filename" >recording filename:</div>
+        <input class="cell" value="{cpart.vr_filename}" onchange="field_update(this, 'str')" id="vidrecord.vr_filename" style="width:15pc;" />
+    </div>
+</div>

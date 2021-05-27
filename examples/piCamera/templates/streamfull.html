@@ -1,0 +1,21 @@
+<div class = "grouphead">
+    <div class="headercell" >Live stream settings</div><img class="group_button" onclick="show_hide('livestreamgroup', this)" src="static/openuparrow.svg" />
+</div>
+<div class="group" id="livestreamgroup">
+     <div class="row">
+        <label class="rowlabel" for="streamer.ls_width" >live stream width:</label>
+        <input class="cell" value="{cpart.ls_width}" onchange="field_update(this, 'int')" id="streamer.ls_width" style="width:8pc;" />
+     </div>
+     <div class="row">
+        <label class="rowlabel" for="streamer.ls_height" >live stream height:</label>
+        <input class="cell" value="{cpart.ls_height}" onchange="field_update(this, 'int')" id="streamer.ls_height" style="width:8pc;" />
+     </div>
+     <div class="row">
+        <label class="rowlabel" for="streamer.ls_frame_skip" >skip frames:</label>
+        <input class="cell" value="{cpart.ls_frame_skip}" onchange="field_update(this, 'int')" id="streamer.ls_frame_skip" style="width:8pc;" />
+     </div>
+     <div class="row">
+        <label class="rowlabel" for="streamer.ls_timeout" >stream timeout:</label>
+        <input class="cell" value="{cpart.ls_timeout}" onchange="field_update(this, 'int')" id="streamer.ls_timeout" style="width:8pc;" />
+     </div>
+</div>
