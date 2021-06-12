@@ -1,7 +1,7 @@
 <div class = "grouphead">
-    <div class="headercell" >Live stream settings</div><img class="group_button" onclick="show_hide('livestreamgroup', this)" src="static/openuparrow.svg" />
+    <div class="headercell" >Live stream settings</div><img class="group_button" onclick="show_hide('livestream', this)" src="{cpart.on_view_image}" />
 </div>
-<div class="group" id="livestreamgroup">
+<div class="group" id="livestreamgroup"{cpart.group_vis}>
      <div class="row">
         <label class="rowlabel" for="streamer.ls_width" >live stream width:</label>
         <input class="cell" value="{cpart.ls_width}" onchange="field_update(this, 'int')" id="streamer.ls_width" style="width:8pc;" />

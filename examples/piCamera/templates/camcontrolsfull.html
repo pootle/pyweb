@@ -1,13 +1,18 @@
 <div class = "grouphead">
-    <div class="headercell" >Camera settings</div><img class="group_button" onclick="show_hide('cameragroup', this)" src="static/openuparrow.svg" />
+    <div class="headercell" >Camera settings</div><img class="group_button" onclick="show_hide('*', this)" src="{cpart.on_view_image}" />
 </div>
-<div class="group" id="cameragroup">
+<div class="group" id="*group"{cpart.group_vis}>
     <input value="{cpart.cam_zoom_left}" onchange="field_update(this, 'float')" id="cam_zoom_left" style="display:none;" />
     <input value="{cpart.cam_zoom_right}" onchange="field_update(this, 'float')" id="cam_zoom_right" style="display:none;" />
     <input value="{cpart.cam_zoom_top}" onchange="field_update(this, 'float')" id="cam_zoom_top" style="display:none;" />
     <input value="{cpart.cam_zoom_bottom}" onchange="field_update(this, 'float')" id="cam_zoom_bottom" style="display:none;" />
+    
     <div class="row">
-        <label class="rowlabel" for="cam_resolution-s" >resolution:</label>
+        <label class="rowlabel" for="cam_exposure_speed" >exposure (us):</label>
+        <div id="cam_exposure_speed" >{cpart.cam_exposure_speed}</div>
+    </div>
+    <div class="row">
+        <label class="rowlabel" for="cam_resolution" >resolution:</label>
         <select id="cam_resolution" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_resolutionsel}</select>
     </div>
     <div class="row">
@@ -22,6 +27,12 @@
         <label class="rowlabel" for="cam_vflip" >vflip:</label>
         <select id="cam_vflip" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_vflipsel}</select>
     </div>
+    
+    <div class="row">
+        <label class="rowlabel" for="cam_iso" >iso:</label>
+        <select id="cam_iso" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_isosel}</select>
+    </div>
+    
     <div class="row">
         <label class="rowlabel" for="" >awb mode:</label>
         <select id="cam_awb_mode" onchange="field_update(this, 'sel')" style="width:8pc;" >{cpart:cam_awb_modesel}</select>

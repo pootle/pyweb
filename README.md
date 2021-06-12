@@ -28,9 +28,8 @@ Python 3.7 or later is needed. Flask must be installed before using.
 1. cd into the folder
 1. cd into examples
 1. cd into tut1
-1. declare a couple of shell variables that flask expects - for example:
-   1. `export FLASK_APP=tut1.py`
-   2. `export FLASK_ENV=development`
+1. declare a shell variables that flask expects - for example:
+   1. `export FLASK_ENV=development`
 1. type `flask run --host=0.0.0.0`
 
 ## The sample tut1

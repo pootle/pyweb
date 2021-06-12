@@ -8,8 +8,9 @@ import time, threading, io, sys
 from enum import Flag, auto
 from picamera.exc import PiCameraNotRecording
 from flask import Response
+from flaskextras import Webpart
 
-class Streamer():
+class Streamer(Webpart):
     """
     This class is written to work with camHandler and provides an mjpeg stream from the camera on demand. The stream
     uses piCamera.start_recording to fetch a stream of images. Images are provided using a generator.
@@ -18,10 +19,11 @@ class Streamer():
     
     When all streams become inactive, after a timeout period, it will shut down the recording
     """
-    def __init__(self, parent):
+    def __init__(self, **kwargs):
         """
         initialisation just sets up the vars used.
         """
+        super().__init__(**kwargs)
         self.ls_width = 640                     # resize the camera feed for streaming
         self.ls_height = 480
         self.ls_frame_skip = 0                  # number of camera frames to skip between output frames
@@ -30,9 +32,8 @@ class Streamer():
         self.ls_lastactive = 0                  # last time a frame was read
         self.ls_protect=threading.Lock()
         self.ls_condition=None
-        self.camhand=parent
         self.monitor_active = False
-        parent.add_url_rule('/camstream', view_func=self.start_stream) # add the url handler to start a live stream
+        self.camhand.add_url_rule('/camstream', view_func=self.start_stream) # add the url handler to start a live stream
 
     def start_stream(self):
         """

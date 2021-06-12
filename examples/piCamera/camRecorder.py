@@ -6,8 +6,9 @@ to several seconds after the trigger.
 import threading, queue, time, pathlib, shutil
 from subprocess import Popen, PIPE
 from flask import jsonify
+from flaskextras import Webpart
 
-class VideoRecorder():
+class VideoRecorder(Webpart):
     """
     Records H264 on demand.
     
@@ -22,11 +23,15 @@ class VideoRecorder():
     
     When recording starts the status updates to recording.
     """
-    def __init__(self, parent):
+    
+    saveable_settings=Webpart.saveable_settings + ('vr_width', 'vr_height', 'vr_folder', 'vr_filename', 'vr_backtime', 'vr_forwtime', 'vr_record_limit',
+            'vr_max_merge', 'vr_saveh264')
+    
+    def __init__(self, **kwargs):
         """
         initialisation just sets up the vars used.
         """
-        self.camhand=parent
+        super().__init__(**kwargs)
         self.vr_status = 'off'        #off, ready, waiting or recording
         self.vr_width = 640
         self.vr_height = 480
@@ -46,11 +51,9 @@ class VideoRecorder():
         self.procthread = None
         self.vr_web_trigger=None
         self.vr_trig_queue=queue.Queue()
-        self.saveable_settings=('vr_width', 'vr_height', 'vr_folder', 'vr_filename', 'vr_backtime', 'vr_forwtime', 'vr_record_limit',
-            'vr_max_merge', 'vr_saveh264')
         # and this to support web browser front end
-        parent.add_url_rule('/flip-trigger', view_func=self.flip_record_trigger, methods=('REQUEST',))
-        parent.add_url_rule('/flip-record', view_func=self.record_now, methods=('REQUEST',))
+        self.camhand.add_url_rule('/flip-trigger', view_func=self.flip_record_trigger, methods=('REQUEST',))
+        self.camhand.add_url_rule('/flip-record', view_func=self.record_now, methods=('REQUEST',))
         
     def get_trigger(self, timeout=300):
         """

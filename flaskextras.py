@@ -1,10 +1,38 @@
-import sys, time, json, atexit, traceback
-from flask import redirect, request, Response, jsonify, Flask
+import sys, time, json, atexit, traceback, pathlib
+from flask import redirect, url_for, request, Response, jsonify, Flask
 
 class formathtml():
     """
     speshull version of dunder format to make building dynamic html easier
+    
+    Uses at (at app level) a dict of web pages that can be requested with the matching templates.
     """
+    def __init__(self, page_templates=None, part_templates=None):
+        """
+        page templates: a dict of html pages that can be requested and the template file to use
+        """
+        self.page_templates=page_templates
+        templatedir=pathlib.Path('templates')
+        if not page_templates is None:
+            for pagename, pagetemplate in self.page_templates.items():
+                tpath=templatedir/pagetemplate
+                assert tpath.is_file(), "unable to find template file %s for url path %s (%s)" % (pagetemplate, pagename, str(tpath))
+                self.add_url_rule(pagename, view_func=self.make_web_page)
+                if pagename == '/index.html':
+                    self.add_url_rule('/', view_func=self.redir_index)
+
+    def redir_index(self):
+        for rule in self.url_map.iter_rules():
+            url = url_for(rule.endpoint, **(rule.defaults or {}))
+            if url == '/index.html':
+                print(rule.endpoint, type(rule.endpoint).__name__)
+                return redirect(rule)
+
+    def make_web_page(self):
+        with open('templates/' + self.page_templates[request.path], 'r') as tfile:
+            template=tfile.read()
+        return template.format(app=self)    
+
     def __format__(self, fparam):
         """
         special version of format that extends formatting for this and inheriting classes.
@@ -15,8 +43,7 @@ class formathtml():
             an attibute <name>_LIST which is a dict with info to create the dropdown.
         
         embedding parts:
-            optional or variant html can be included 
-        
+            optional or variant html can be included
         """
         if fparam.endswith('sel'):
             attr = fparam[:-3]
@@ -28,15 +55,18 @@ class formathtml():
                 template=tfile.read()
                 return template.format(cpart=self if partname=='' else self.cparts[partname]) 
         else:
-            return super().__format__(fparam)
-
+            try:
+                return super().__format__(fparam)
+            except:
+                print('twas', fparam)
+                raise
 
 class webify(Flask, formathtml):
     """
     Inherit from this class to provide the added functionality to allow dynamic updates of a web page by the app and 
     to provide an easy mechanism to call methods in the app,
     """
-    def __init__(self, appname, page_updators):
+    def __init__(self, appname, page_updators, page_templates=None):
         """
         Setup extra functionality on top of Flask.
         
@@ -44,7 +74,8 @@ class webify(Flask, formathtml):
         
         Also registers a shutdown function if necessary
         """
-        super().__init__(appname)
+        Flask.__init__(self, appname)
+        formathtml.__init__(self, page_templates=page_templates)
         self.webify_page_update_index = page_updators
         self.add_url_rule('/appupdates', view_func=self.webify_doappupdates)
         self.add_url_rule('/field_update', view_func=self.webify_fieldupdator)
@@ -76,13 +107,21 @@ class webify(Flask, formathtml):
         targetob = self
         while len(splitid) > 1:
             nextatt=splitid.pop(0)
+            dindex=nextatt.find('[')
             try:
-                targetob=getattr(targetob,nextatt)
+                if dindex == -1:
+                    targetob=getattr(targetob, nextatt)
+                else:
+                    targetob=getattr(targetob, nextatt[:dindex])[nextatt[dindex+1:-1]]
             except:
                 print('web_field_update failed to find attribute >%s< in object %s for id %s' % (nextatt, targetob, id), file=sys.stderr)
                 return jsonify(((fid, {'disabled':False}),
                         ('alert', "I'm sorry Dave, I can't find that attribute"),))
         targetatt=splitid[0]
+        dindex=targetatt.find('[')
+        if dindex>=0:
+            dname=targetatt[dindex+1:-1]
+            targetatt=targetatt[:dindex]
         if not hasattr(targetob, targetatt):
             print('web_field_update failed - attribute %s not found in %s' % (targetatt, targetob), file=sys.stderr)
             return jsonify(((fid, {'disabled':False}),
@@ -119,13 +158,23 @@ class webify(Flask, formathtml):
                 print('web_field_update failed - failed to handle %s of type %s for field %s' % (valstring, ftype, id), file=sys.stderr)
                 return jsonify(((fid, {'disabled':False}),
                             ('alert', "I'm sorry Dave, I couldn't make sense of the value %s" % valstring),))
-        try:
-            setattr(targetob, targetatt, newval)
-            print(' I set %s in %s to %s' % (targetatt, targetob, newval), file=sys.stderr)
-        except:
-            traceback.print_exc()
-            return jsonify(((fid, {'disabled':False}),
-                        ('alert', "I'm sorry Dave, something went wrong with that update - see server log"),))
+        if dindex==-1:
+            try:
+                setattr(targetob, targetatt, newval)
+                print(' I set %s in %s to %s' % (targetatt, targetob, newval), file=sys.stderr)
+            except:
+                traceback.print_exc()
+                return jsonify(((fid, {'disabled':False}),
+                            ('alert', "I'm sorry Dave, something went wrong with that update - see server log"),))
+        else:
+            try:
+                dicty=getattr(targetob, targetatt)
+                dicty[dname]= newval
+                print(' I set %s[%s] in %s to %s' % (targetatt, dname, targetob, newval), file=sys.stderr)
+            except:
+                traceback.print_exc()
+                return jsonify(((fid, {'disabled':False}),
+                            ('alert', "I'm sorry Dave, something went wrong with that update - see server log"),))
         return jsonify(((fid, {'disabled':False}),))
 
     def webify_doappupdates(self):
@@ -134,6 +183,24 @@ class webify(Flask, formathtml):
         appropriate to each page. 
         """
         return Response(updatestreamgen(self.webify_page_update_index[request.args['page']]), mimetype='text/event-stream; charset=utf-8')
+
+class Webpart():
+    """
+    shared code for components of the app 
+    """
+    saveable_settings = ('on_view',)
+    
+    def __init__(self, parent):
+        self.on_view=True
+        self.camhand=parent
+
+    @property
+    def on_view_image(self):
+        return "static/openuparrow.svg" if self.on_view else "static/opendnarrow.svg"
+
+    @property
+    def group_vis(self):
+        return '' if self.on_view else ' style="display: none;" '
 
 def make_subselect(values, selected, display=None):
     """

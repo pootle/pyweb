@@ -1,0 +1,14 @@
+<html>
+<body>
+<h3>{{header}}</h3>
+<ul>
+    {% for file in files %}
+    <li>
+        <a href="{{basep}}/{{ file }}">
+            {{ file }}
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+</body>
+</html>

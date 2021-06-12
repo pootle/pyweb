@@ -29,7 +29,9 @@ async function call_server(ele, url, params) {
         
         The originating field is disabled, normally the updates in the response will enable it again 
     */
-    ele.disabled=true;
+    if (ele) {
+        ele.disabled=true;
+    }
     console.log('send request to >'+url+ '<')
     let response = await fetch(url, params);
     if (response.ok) { // if HTTP-status is 200-299
@@ -41,7 +43,9 @@ async function call_server(ele, url, params) {
         
 }   else {
         alert("HTTP-Error: " + response.status + ': ' + response.statusText);
-        ele.disabled = false;
+        if (ele) {
+            ele.disabled = false;
+        }
     }
 }
 
@@ -90,14 +94,21 @@ function updatefield(fieldid, updates) {
 }
 
 function show_hide(etag, img) {
-    var ele=document.getElementById(etag);
+    var ele=document.getElementById(etag+'group');
     var x=ele.style.display;
     if (x=="none") {
         ele.style.display="";
         img.src="static/openuparrow.svg"
+        newval='true';
     } else {
         img.src="static/opendnarrow.svg"
         ele.style.display="none";
+        newval='false';
+    }
+    if (etag=='*') {
+        call_server(null, "field_update?id=on_view&t=bool&v="+newval, null);
+    } else {
+        call_server(null, "field_update?id=cparts["+etag+"].on_view&t=bool&v="+newval, null);
     }
 }
 

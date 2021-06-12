@@ -1,7 +1,7 @@
 <div class = "grouphead">
-    <div class="headercell" >video record settings</div><img class="group_button" onclick="show_hide('vidrecordgroup', this)" src="static/openuparrow.svg" />
+    <div class="headercell" >video record settings</div><img class="group_button" onclick="show_hide('vidrecord', this)" src="{cpart.on_view_image}" />
 </div>
-<div class="group" id="vidrecordgroup">
+<div class="group" id="vidrecordgroup"{cpart.group_vis}>
     <div class="row">
         <input type="button" onclick="app_call_f(this, 'flip-trigger')" id="recorder_btn1" value="get / release trigger"  style="grid-column: 1;" />
         <div class="cell" id="vr_status">{cpart.vr_status}</div>
