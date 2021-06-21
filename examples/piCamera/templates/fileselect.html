@@ -1,0 +1,18 @@
+<html>
+<header>
+    <script src="static/pymon.js"></script>
+</header>
+<body>
+<h3>{{header}}</h3>
+<ul>
+    {% for file in files %}
+    <li>
+        <p onclick="app_action('',  'file_choose', {'file': '{{file}}'})">
+            {{ file }}
+        </p>
+    </li>
+    {% endfor %}
+</ul>
+<p> The end</p>
+</body>
+</html>

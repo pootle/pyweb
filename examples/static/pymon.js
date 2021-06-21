@@ -4,12 +4,18 @@ function field_update(ele, ftype) {
     call_server(ele, "field_update?id="+ele.id+"&t="+ftype+"&v="+ele.value, null);
 }
 
-function app_action(ele, action) {
+function app_action(ele, action, params=none) {
     // called (mostly) from button's onclick
+    if (params) {
+        data=params;
+        data['action'] = action
+    } else {
+        data={"id": ele.id, 'action': action};
+    }
     call_server(ele, 'app_action', {
         headers: {"content-type":"application/json; charset=UTF-8",
                   "cache": "no-store"},
-        body   : JSON.stringify({"id": ele.id, 'action': action}),
+        body   : JSON.stringify(),
         method : "REQUEST"
         });
 }
@@ -69,6 +75,8 @@ function updatefield(fieldid, updates) {
         console.log(updates)
     } else if (fieldid=='alert') {
         alert(updates)
+    } else if (fieldid=='winback') {
+        window.history.back();
     } else {
         var tempel=document.getElementById(fieldid);
         if (tempel===null){
@@ -129,4 +137,14 @@ function liveupdates(pageid, livekey) {
                 console.log('update connection unhappy')
             }
         }, false);
+}
+
+function savesettings(btnel) {
+    btnel.innerHTML="Saving";
+    var saveas=prompt("save settings as?", 'default');
+    if (saveas == null) {
+        btnel.innerHTML ='Save settings';
+    } else {
+        app_call_f(btnel, 'save_app_sets?f='+saveas);
+    }
 }

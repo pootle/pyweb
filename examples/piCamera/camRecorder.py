@@ -23,34 +23,36 @@ class VideoRecorder(Webpart):
     
     When recording starts the status updates to recording.
     """
-    
-    saveable_settings=Webpart.saveable_settings + ('vr_width', 'vr_height', 'vr_folder', 'vr_filename', 'vr_backtime', 'vr_forwtime', 'vr_record_limit',
-            'vr_max_merge', 'vr_saveh264')
-    
-    def __init__(self, **kwargs):
+    saveable_defaults = {
+        'vr_width'      : 640,
+        'vr_height'     : 480,
+        'vr_folder'     : '~/camfiles/videos',
+        'vr_filename'   : '%y/%m/%d/%H_%M_%S',
+        'vr_backtime'   : 0,                    # target time for video to start before trigger
+        'vr_forwtime'   : 3,                    # target time for video to carry on after trigger stops
+        'vr_record_limit':20,                   # max length for raw video recording (h.264 file)
+        'vr_max_merge'  : 3,                    # max number of raw video files to merge into 1 mp4 file
+        'vr_saveh264'   : False                 # if true, h264 are not deleted after conversion to mp4
+    }
+    saveable_defaults.update(Webpart.saveable_defaults)
+
+    def __init__(self, settings, **kwargs):
         """
         initialisation just sets up the vars used.
         """
-        super().__init__(**kwargs)
-        self.vr_status = 'off'        #off, ready, waiting or recording
-        self.vr_width = 640
-        self.vr_height = 480
-        self.vr_folder = '~/camfiles/videos'
-        self.vr_filename='%y/%m/%d/%H_%M_%S'
-        self.vr_backtime = 0                # target time for video to start before trigger
-        self.vr_forwtime = 3                # target time for video to carry on after trigger stops
-        self.vr_record_limit = 20           # max length for raw video recording (h.264 file)
-        self.vr_max_merge = 3               # max number of raw video files to merge into 1 mp4 file
-        self.vr_saveh264 = False            # if true, h264 are not deleted after conversion to mp4
-        self.vr_splitter_port = None
-        self.vr_recordcount = 0
-        self.vr_lastrecording = 0
-        self.vr_activefile = '-'
-        self.vr_protect=threading.Lock()
-        self.vr_monthread = None
-        self.procthread = None
-        self.vr_web_trigger=None
-        self.vr_trig_queue=queue.Queue()
+        super().__init__(settings=settings, **kwargs)
+        self.vr_status          = 'off'        #off, ready, waiting or recording
+        for v_attr in self.saveable_defaults.keys():
+            setattr(self, v_attr, self.resolve_attr(v_attr, settings, self.saveable_defaults[v_attr]))
+        self.vr_splitter_port   = None
+        self.vr_recordcount     = 0
+        self.vr_lastrecording   = 0
+        self.vr_activefile      = '-'
+        self.vr_protect         =   threading.Lock()
+        self.vr_monthread       = None
+        self.procthread         = None
+        self.vr_web_trigger     = None
+        self.vr_trig_queue      = queue.Queue()
         # and this to support web browser front end
         self.camhand.add_url_rule('/flip-trigger', view_func=self.flip_record_trigger, methods=('REQUEST',))
         self.camhand.add_url_rule('/flip-record', view_func=self.record_now, methods=('REQUEST',))

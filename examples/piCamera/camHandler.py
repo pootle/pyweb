@@ -19,7 +19,7 @@ The program uses watcher derived variables to enable easy integration with front
 """
 
 import picamera, time
-import threading, json, pathlib, fractions
+import threading, json, pathlib, fractions, sys
 
 # built in "standard" resolutions - indexed by the camera revision
 HQcam=(('special', '4056x3040', '2028x1520', '1012x760', '1080p', '720p', '480p'),'1012x760')
@@ -45,14 +45,17 @@ class appHandler():
     """
     some basic housekeeping that might be useful elsewhere
     """
-    def __init__(self, parts, settings=None):
+    def __init__(self, parts, settings={}):
         """
         sets up optional extra components for the app that are placed in a dict - self.cparts
         """
         self.cparts={}
         for partname, modulename, partclass, partparams in parts:
             try:
-                self.cparts[partname]=getclass(modulename, partclass)(parent=self, **partparams)
+                self.cparts[partname]=getclass(modulename, partclass)(
+                        parent=self, 
+                        settings=settings['cparts'].get(partname, {}) if 'cparts' in settings else {},
+                        **partparams)
             except:
                 print('failed to setup component: modulename %s, partclass %s, partparams %s' % (modulename, partclass, partparams))
                 traceback.print_exc()
@@ -63,11 +66,12 @@ class appHandler():
         retrieves all the user-setable values for app and component settings as dicts, lists, ints, floats and strings, such
         that they can be json converted to saved to a file for later re-use.
         """
-        appatts={attname: getattr(self, attname) for attname in self.saveable_settings}
+        print(self.saveable_defaults)
+        appatts={attname: getattr(self, attname) for attname in self.saveable_defaults.keys()}
         appatts['cparts'] = {}
         for partname, part in self.cparts.items():
-            if hasattr(part,'saveable_settings'):
-                appatts['cparts'][partname]={pattname: getattr(part,pattname) for pattname in part.saveable_settings}
+            if hasattr(part,'saveable_defaults'):
+                appatts['cparts'][partname]={pattname: getattr(part,pattname) for pattname in part.saveable_defaults}
         return appatts
 
 class cameraManager(appHandler):
@@ -86,13 +90,15 @@ class cameraManager(appHandler):
     
     For attributes that the camera can itself change.  
     """
-    saveable_settings=(
-        'cam_framerate', 'cam_resolution', 'cam_contrast', 'cam_brightness', 'cam_exposure_compensation', 'cam_rotation', 'cam_hflip', 'cam_vflip', 'cam_iso',
-        'cam_shutter_speed', 'cam_exposure_speed', 'cam_awb_mode', 'cam_exposure_mode', 'cam_meter_mode', 'cam_drc_strength', 
-        'cam_zoom_left', 'cam_zoom_top', 'cam_zoom_right', 'cam_zoom_bottom'
-    )
-    
-    def __init__(self, **kwargs):
+    saveable_defaults = {
+        s_name: None for s_name in (
+                'cam_framerate', 'cam_resolution', 'cam_contrast', 'cam_brightness', 'cam_exposure_compensation', 'cam_rotation', 'cam_hflip', 'cam_vflip', 'cam_iso',
+                'cam_shutter_speed', 'cam_exposure_speed', 'cam_awb_mode', 'cam_exposure_mode', 'cam_meter_mode', 'cam_drc_strength', 
+                'cam_zoom_left', 'cam_zoom_top', 'cam_zoom_right', 'cam_zoom_bottom'
+        )
+    }
+
+    def __init__(self, settings, **kwargs):
         """
         Runs the camera and everything it does as well as other camera related activities
         """
@@ -100,36 +106,36 @@ class cameraManager(appHandler):
         self.cameraTimeout=None
         self.activityports=[None]*4
         self.running=True
-        self.picam=None             # set when camera is running, cleared when stopped
-        self.cam_framerate = 10
-        with picamera.PiCamera() as tempcam:
-            self.camType=tempcam.revision
-            self.cam_resolution = cam_resolutions[self.camType][1]
-            self.cam_resolution_LIST = {'values':cam_resolutions[self.camType][0]}
-            self.cam_u_width = self.cam_resolution[0]       # when camera resolution is special, specific values here are used
-            self.cam_u_height = self.cam_resolution[1]
-            for cam_attr in ('contrast', 'brightness', 'exposure_compensation', 'rotation', 'hflip', 'vflip', 'iso', 'shutter_speed', 'exposure_speed'):
-                setattr(self, '_cam_'+cam_attr, getattr(tempcam, cam_attr))
-            self.cam_rotation_LIST = {'values': (0, 90, 180, 270), 'display': ('0', '90', '180', '270')}
-            self.cam_hflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
-            self.cam_vflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
-            self.cam_iso_LIST = {'values': (0,100, 200, 320, 400, 500, 640, 800), 'display': ('auto','100', '200', '320', '400', '500', '640', '800')}
-            for cam_attr in ('awb_mode', 'exposure_mode', 'meter_mode', 'drc_strength'):
-                 self.make_attr_list(cam_attr, tempcam)
-            self.cam_exposure_compensation_LIST = {
-                'values': list(range(-25, 26)),
-                'display': ('-4 1/6', '-4', '-3 5/6', '-3 2/3', '-3 1/2', '-3 1/3', '-3 1/6', '-3', '-2 5/6', '-2 2/3', '-2 1/2', '-2 1/3', '-2 1/6', '-2', 
-                            '-1 5/6', '-1 2/3', '-1 1/2', '-1 1/3', '-1 1/6', '-1', '-5/6', '-2/3', '-1/2', '-1/3', '-1/6', '0', '1/6', '1/3', '1/2', '2/3', '5/6',
-                            '1', '1 1/6', '1 1/3', '1 1/2', '1 2/3', '1 5/6', '2', '2 1/6', '2 1/3', '2 1/2', '2 2/3', '2 5/6', 
-                            '3', '3 1/6', '3 1/3', '3 1/2', '2 2/3', '3 5/6', '4', '4 1/6') 
-            }
-            self.cam_zoom_left, self.cam_zoom_top, zoom_width, zoom_height = tempcam.zoom
-            self.cam_zoom_right = self.cam_zoom_left+zoom_width
-            self.cam_zoom_bottom = self.cam_zoom_top+zoom_height
-        self.cam_state = self.cam_summary = 'closed'
+        self.picam=picamera.PiCamera()            # set when camera is running, cleared when stopped
+        self.camType=self.picam.revision
+        for cam_attr in ('awb_mode', 'exposure_mode', 'meter_mode', 'drc_strength'):
+            self.make_attr_list(cam_attr, self.picam)
+        self.cam_resolution_LIST = {'values':cam_resolutions[self.camType][0]}
+        self.cam_rotation_LIST = {'values': (0, 90, 180, 270), 'display': ('0', '90', '180', '270')}
+        self.cam_hflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
+        self.cam_vflip_LIST = {'display': ('off', 'on'), 'values': (False, True)}
+        self.cam_iso_LIST = {'values': (0,100, 200, 320, 400, 500, 640, 800), 'display': ('auto','100', '200', '320', '400', '500', '640', '800')}
+        self.cam_exposure_compensation_LIST = {
+            'values': list(range(-25, 26)),
+            'display': ('-4 1/6', '-4', '-3 5/6', '-3 2/3', '-3 1/2', '-3 1/3', '-3 1/6', '-3', '-2 5/6', '-2 2/3', '-2 1/2', '-2 1/3', '-2 1/6', '-2', 
+                        '-1 5/6', '-1 2/3', '-1 1/2', '-1 1/3', '-1 1/6', '-1', '-5/6', '-2/3', '-1/2', '-1/3', '-1/6', '0', '1/6', '1/3', '1/2', '2/3', '5/6',
+                        '1', '1 1/6', '1 1/3', '1 1/2', '1 2/3', '1 5/6', '2', '2 1/6', '2 1/3', '2 1/2', '2 2/3', '2 5/6', 
+                        '3', '3 1/6', '3 1/3', '3 1/2', '2 2/3', '3 5/6', '4', '4 1/6') 
+        }
+        self.cam_resolution = self.resolve_attr('cam_resolution', settings, cam_resolutions[self.camType][1])
+        self.cam_u_width, self.cam_u_height = [int(nn) for nn in self.cam_resolution.split('x')]
+        for cam_attr in ('contrast', 'brightness', 'exposure_compensation', 'rotation', 'hflip', 'vflip', 'iso', 'shutter_speed', 'exposure_speed'):
+            setattr(self, '_cam_'+cam_attr, self.resolve_attr('cam_'+cam_attr, settings, getattr(self.picam, cam_attr)))
+        self.cam_framerate = settings.get('cam_framerate',10)
+        zl, zt, zw, zh = self.picam.zoom
+        self.cam_zoom_left  = self.resolve_attr('cam_zoom_left', settings, zl)
+        self.cam_zoom_top   = self.resolve_attr('cam_zoom_top', settings, zt)
+        self.cam_zoom_right = self.resolve_attr('cam_zoom_right', settings, zl+zw)
+        self.cam_zoom_bottom= self.resolve_attr('cam_zoom_bottom', settings, zt+zh)
+        self.stop_camera()
         self.autoclose = True
         self.autoclose_timeout = 10
-        super().__init__(**kwargs)
+        super().__init__(settings=settings, **kwargs)
 
     def make_attr_list(self, attr, picam):
         alist=getattr(picam, attr.upper()+'S')
@@ -414,3 +420,6 @@ class cameraManager(appHandler):
                 self.log(wv.loglvls.INFO,'activity %s closed' % actname)
             except:
                 self.log(wv.loglvls.WARN,'activity %s failed to close' % actname, exc_info=True, stack_info=True)
+
+
+print('in camhandler', cameraManager.saveable_defaults)

@@ -19,11 +19,19 @@ class Streamer(Webpart):
     
     When all streams become inactive, after a timeout period, it will shut down the recording
     """
-    def __init__(self, **kwargs):
+    saveable_defaults = {
+        'ls_width': 640,
+        'ls_height':480,
+        'ls_frame_skip': 0,
+        'ls_timeout': 120,
+    }
+    saveable_defaults.update(Webpart.saveable_defaults)
+    
+    def __init__(self, settings, **kwargs):
         """
         initialisation just sets up the vars used.
         """
-        super().__init__(**kwargs)
+        super().__init__(settings=settings, **kwargs)
         self.ls_width = 640                     # resize the camera feed for streaming
         self.ls_height = 480
         self.ls_frame_skip = 0                  # number of camera frames to skip between output frames

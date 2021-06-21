@@ -5,7 +5,7 @@ Base for camera image stream processing using a generator
 from picamera.array import PiRGBAnalysis
 from camHandler import getclass
 import time, threading, traceback, pathlib, png
-from flask import jsonify, request
+from flask import jsonify, request, render_template
 from flaskextras import Webpart
 import numpy as np
 
@@ -13,7 +13,7 @@ class RGBhandler(PiRGBAnalysis):
     """
     extends the piCamera RGBAnalysis class to use a trigger as each frame received.
     
-    This allows analysis code to use a generator (via get _generator) to process a sequence of images
+    This allows analysis code to use a generator (via get_generator) to process a sequence of images
     """
     def __init__(self, genmanager, fsize):
         super().__init__(genmanager.gs_picam, size=fsize)
@@ -38,10 +38,16 @@ class Image_gen(Webpart):
     Using a generator allows a processing function to run a loop with local variables to process each image and potentially
     to run through a sequence of different processing actions.
 
-    See the class    
-    
     """
-    def __init__(self, handler=RGBhandler, **kwargs):
+    
+    saveable_defaults={
+        'gs_width'      : 128,
+        'gs_height'     : 96,
+        'gs_mask_folder': '/home/pi/camfiles/masks',
+    }
+    
+    saveable_defaults.update(Webpart.saveable_defaults)
+    def __init__(self, settings, handler=RGBhandler, **kwargs):
         """
         initialisation just sets up the vars used. These values can be changed at any time, but only take effect when 
         start_recording is next called. If already running, changes only take effect after stopping and running again.
@@ -52,9 +58,9 @@ class Image_gen(Webpart):
         handler:
             class used to accept images from piCamera and notify all the "users" when an image is received. The default
         """
-        super().__init__(**kwargs)
-        self.gs_width = 64                  # resize the camera feed for streaming
-        self.gs_height = 48
+        super().__init__(settings=settings, **kwargs)
+        for v_attr in self.saveable_defaults.keys():
+            setattr(self, v_attr, self.resolve_attr(v_attr, settings, self.saveable_defaults[v_attr]))
         self.gs_timeout = 30                # inactive time till stop recording
         self.gs_splitter_port=None
         self.gs_picam=None
@@ -65,7 +71,7 @@ class Image_gen(Webpart):
         self.gs_trigger=None
         self.gs_framecount = 0
         self.gs_last_active = 0
-
+        
     def get_generator(self):
         """
         returns a generator, having setup a stream, trigger and monitor (in a new thread) if not already running. 
@@ -210,6 +216,22 @@ class Web_Image_processor(Image_gen):
         self.gs_testthread=None
         self.gs_frameproc_btn_text = 'start frame proc'
         self.camhand.add_url_rule('/testgen', view_func=self.Web_run_processor, methods=('REQUEST',)) # add the url handler to start processing a live stream
+        self.camhand.add_url_rule('/fetchmasksize', view_func=self.fetchmasksize)                           # so js editor in browser knows the size
+        self.camhand.add_url_rule('/mask_choose', view_func=self.masklist)
+
+    def savemask(self):
+        pass
+ 
+    def fetchmasksize(self):
+        return jsonify({
+            'width': self.gs_width,
+            'height': self.gs_height,
+        })
+
+    def masklist(self):
+        print('rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr')
+        files = [afile.name for afile in  pathlib.Path(self.gs_mask_folder).iterdir() if afile.is_file() and afile.suffix == '.png']
+        return render_template('fileselect.html',files=files, header="available mask files", basep='maskfile')
 
     def Web_run_processor(self):
         """

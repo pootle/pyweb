@@ -1,5 +1,5 @@
 import camHandler
-import sys, time, json, pathlib
+import sys, time, json, pathlib, traceback
 sys.path.append('../..')
 import flaskextras
 from flask import Flask, redirect, url_for, Response, request, jsonify, render_template, send_from_directory
@@ -10,17 +10,33 @@ class web_picam(flaskextras.webify, camHandler.cameraManager, flaskextras.Webpar
     class to web-enable the app, inherits from the app's class and from flaskestras.webify which adds some useful code to handle
     dynamic field updates (these work in conjunction with the standard javascript 'pymon.js')
     """
-    saveable_settings=camHandler.cameraManager.saveable_settings+flaskextras.Webpart.saveable_settings
+    saveable_defaults=camHandler.cameraManager.saveable_defaults.copy()
+    saveable_defaults.update(flaskextras.Webpart.saveable_defaults)
     def __init__(self,
+                settings='default.json',
                 parts=(('livestream', 'camStreamer', 'Streamer', {}),
                        ('vidrecord', 'camRecorder', 'VideoRecorder',{}),
                        ('vidproc','camGenerator','Web_Image_processor',{}),)):
         """
         """
+        self.settings_folder=pathlib.Path('~/camfiles').expanduser()
+        with_settings={}
+        settingsfile=(self.settings_folder/settings).with_suffix('.json')
+        if settingsfile.is_file():
+            print('using settings from', settingsfile)
+            try:
+                with settingsfile.open('r') as sfo:
+                    with_settings=json.load(sfo)
+            except:
+                with_settings={}
+                traceback.print_exc()
+                print('!!!!App started without saved settings', file=sys.stderr)
+        else:
+            print('no settings found', settingsfile)
         updateindex={'index': self.index_updates}
         flaskextras.webify.__init__(self, __name__, updateindex, page_templates={'/index.html': 'index.html'})
-        flaskextras.Webpart.__init__(self, parent=None)
-        camHandler.cameraManager.__init__(self, parts=parts)
+        flaskextras.Webpart.__init__(self, parent=None, settings=with_settings)
+        camHandler.cameraManager.__init__(self, parts=parts, settings=with_settings)
         self.add_url_rule('/save_app_sets', view_func=self.save_app_setts, methods=('REQUEST',))
 
     def index_updates(self):
@@ -41,9 +57,14 @@ class web_picam(flaskextras.webify, camHandler.cameraManager, flaskextras.Webpar
         ]
 
     def save_app_setts(self):
-        for kv in self.get_settings().items():
-            print('%22s: %s' % kv)
-        return jsonify((('savesetts', {'disabled': False}),))
+        sf=(self.settings_folder/request.args.get('f')).resolve().with_suffix('.json')
+        if self.settings_folder in sf.parents:
+            with sf.open('w') as sfo:
+                sfo.write(json.dumps(self.get_settings(), indent=3, sort_keys=True))
+            return jsonify((('savesetts', {'value': 'Save settings', 'disabled': False}),))
+        else:
+            return jsonify((('savesetts', {'value': 'Save settings', 'disabled': False}),
+                            ('alert', "Ooh! Naughty - you can't save there"),))
 
     @property
     def select_res(self):

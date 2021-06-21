@@ -188,11 +188,33 @@ class Webpart():
     """
     shared code for components of the app 
     """
-    saveable_settings = ('on_view',)
-    
-    def __init__(self, parent):
-        self.on_view=True
+    saveable_defaults = {
+        'on_view': True,
+    }
+
+    def __init__(self, parent, settings):
+        self.on_view=settings.get('on_view', True)
         self.camhand=parent
+
+    def resolve_attr(self, settings_name, settings, default):
+        """
+        smart function to get an attribute from settings (if available), otherwise it uses default for the value.
+        
+        It also checks for the presence of a valid value list and checks that the value in settings is valid (or uses the default)
+        
+        settings_name   : name of setting. the value list is this name with '_LIST' appended
+        
+        settings        : a settings dict
+        
+        default         :  if callable, it calls this func with the param settings_name, otherwise it uses default directly
+        """
+        if settings_name in settings:
+            if hasattr(self, settings_name+'_LIST'):
+                if settings[settings_name] in getattr(self, settings_name+'_LIST')['values']:
+                    return settings[settings_name]
+            else:
+                return settings[settings_name]
+        return default(settings_name) if callable(default) else default
 
     @property
     def on_view_image(self):
